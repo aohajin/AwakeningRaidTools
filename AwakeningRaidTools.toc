@@ -1,0 +1,9 @@
+## Interface: 110200, 110205
+## Version: 1
+## Title: Awakening Raid Tools
+## Author: 怨念物
+## Notes: Raid utility toolkit for Awakening.
+## SavedVariables: AwakeningRaidToolsDB
+## X-Curse-Project-ID: 1497545
+
+AwakeningRaidTools.lua
