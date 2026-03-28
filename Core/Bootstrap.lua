@@ -2,9 +2,19 @@ local addonName, addon = ...
 
 addon.name = addonName
 addon.modules = addon.modules or {}
+addon.encounterModulesByID = addon.encounterModulesByID or {}
+addon.activeEncounterID = nil
+addon.activeEncounterModules = addon.activeEncounterModules or {}
 
 function addon:RegisterModule(name, module)
     self.modules[name] = module
+    module.moduleName = name
+
+    local encounterID = module.encounterId or module.encounterID
+    if encounterID then
+        self.encounterModulesByID[encounterID] = self.encounterModulesByID[encounterID] or {}
+        table.insert(self.encounterModulesByID[encounterID], module)
+    end
 end
 
 function addon:InitializeModules()
@@ -15,34 +25,61 @@ function addon:InitializeModules()
     end
 end
 
-local function DumpRaidEncounters()
-    if type(EJ_GetNumTiers) ~= "function" then
-        print("|cffff7f00ART:|r Encounter Journal API not available.")
+local function IsMythicRaidDifficulty(difficultyID)
+    return difficultyID == 16
+end
+
+local function ActivateEncounter(encounterID, encounterName, difficultyID, groupSize)
+    addon.activeEncounterID = encounterID
+    local modules = addon.encounterModulesByID[encounterID]
+    if not modules then
         return
     end
 
-    local currentTier = EJ_GetCurrentTier()
-    if not currentTier or currentTier <= 0 then
-        currentTier = EJ_GetNumTiers()
-    end
-    EJ_SelectTier(currentTier)
+    for i = 1, #modules do
+        local module = modules[i]
+        module.isActive = true
+        addon.activeEncounterModules[module] = true
 
-    print(string.format("|cffff7f00ART:|r Dumping raid encounters for tier %d", currentTier))
-
-    local numInstances = EJ_GetNumInstances() or 0
-    for i = 1, numInstances do
-        local instanceName, _, _, _, _, _, _, journalInstanceID = EJ_GetInstanceByIndex(i, true)
-        if instanceName and journalInstanceID then
-            EJ_SelectInstance(journalInstanceID)
-            local numEncounters = EJ_GetNumEncounters() or 0
-            print(string.format("|cff00ff00[%s]|r instanceID=%d encounters=%d", instanceName, journalInstanceID, numEncounters))
-            for encounterIndex = 1, numEncounters do
-                local encounterName, _, encounterID = EJ_GetEncounterInfoByIndex(encounterIndex, journalInstanceID)
-                print(string.format("  - %s | encounterID=%s", encounterName or "Unknown", tostring(encounterID)))
-            end
+        if type(module.OnEncounterStart) == "function" then
+            module:OnEncounterStart(encounterID, encounterName, difficultyID, groupSize)
+        end
+        if type(module.OnMythicEncounterStart) == "function" then
+            module:OnMythicEncounterStart(encounterID, encounterName, difficultyID, groupSize)
         end
     end
 end
 
-SLASH_AWAKENINGRAIDTOOLSDUMP1 = "/artdump"
-SlashCmdList.AWAKENINGRAIDTOOLSDUMP = DumpRaidEncounters
+local function DeactivateEncounter(encounterID, encounterName, difficultyID, groupSize, success)
+    for module in pairs(addon.activeEncounterModules) do
+        local moduleEncounterID = module.encounterId or module.encounterID
+        if moduleEncounterID == encounterID then
+            if type(module.OnEncounterEnd) == "function" then
+                module:OnEncounterEnd(encounterID, encounterName, difficultyID, groupSize, success)
+            end
+            if type(module.OnMythicEncounterEnd) == "function" then
+                module:OnMythicEncounterEnd(encounterID, encounterName, difficultyID, groupSize, success)
+            end
+            module.isActive = false
+            addon.activeEncounterModules[module] = nil
+        end
+    end
+    if addon.activeEncounterID == encounterID then
+        addon.activeEncounterID = nil
+    end
+end
+
+local encounterFrame = CreateFrame("Frame")
+encounterFrame:RegisterEvent("ENCOUNTER_START")
+encounterFrame:RegisterEvent("ENCOUNTER_END")
+encounterFrame:SetScript("OnEvent", function(_, event, ...)
+    if event == "ENCOUNTER_START" then
+        local encounterID, encounterName, difficultyID, groupSize = ...
+        if IsMythicRaidDifficulty(difficultyID) then
+            ActivateEncounter(encounterID, encounterName, difficultyID, groupSize)
+        end
+    elseif event == "ENCOUNTER_END" then
+        local encounterID, encounterName, difficultyID, groupSize, success = ...
+        DeactivateEncounter(encounterID, encounterName, difficultyID, groupSize, success)
+    end
+end)

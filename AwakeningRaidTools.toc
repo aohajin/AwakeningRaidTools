@@ -8,7 +8,6 @@
 
 Core/Bootstrap.lua
 
-Common/Interruptibility.lua
 Common/NameplateCastMarker.lua
 
 Raids/_index.lua
@@ -26,5 +25,16 @@ Raids/Dreamrift/ChimaerusTheUndreamtGod.lua
 Raids/MarchOfQuelDanas/_index.lua
 Raids/MarchOfQuelDanas/BelorenChildOfAlar.lua
 Raids/MarchOfQuelDanas/MidnightFalls.lua
+
+Raids/Aberrus/_index.lua
+Raids/Aberrus/KazzaraTheHellforged.lua
+Raids/Aberrus/TheAmalgamationChamber.lua
+Raids/Aberrus/TheForgottenExperiments.lua
+Raids/Aberrus/AssaultOfTheZaqali.lua
+Raids/Aberrus/RashokTheElder.lua
+Raids/Aberrus/TheVigilantStewardZskarn.lua
+Raids/Aberrus/Magmorax.lua
+Raids/Aberrus/EchoOfNeltharion.lua
+Raids/Aberrus/ScalecommanderSarkareth.lua
 
 AwakeningRaidTools.lua

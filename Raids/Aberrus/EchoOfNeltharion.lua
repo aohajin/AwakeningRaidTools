@@ -1,8 +1,8 @@
 local _, addon = ...
 
 local Boss = {
-    name = "Vorasius",
-    encounterId = 3177,
+    name = "EchoOfNeltharion",
+    encounterId = 2684,
     mythicOnly = true,
 }
 
@@ -14,4 +14,4 @@ function Boss:OnMythicEncounterEnd()
     self.isActive = false
 end
 
-addon:RegisterModule("Raids.Voidspire.Vorasius", Boss)
+addon:RegisterModule("Raids.Aberrus.EchoOfNeltharion", Boss)
