@@ -8,18 +8,10 @@ local Boss = {
 
 function Boss:OnMythicEncounterStart()
     self.isActive = true
-    local marker = addon.modules and addon.modules["Common.NameplateCastMarker"]
-    if marker and type(marker.Enable) == "function" then
-        marker:Enable()
-    end
 end
 
 function Boss:OnMythicEncounterEnd()
     self.isActive = false
-    local marker = addon.modules and addon.modules["Common.NameplateCastMarker"]
-    if marker and type(marker.Disable) == "function" then
-        marker:Disable()
-    end
 end
 
 addon:RegisterModule("Raids.Aberrus.KazzaraTheHellforged", Boss)

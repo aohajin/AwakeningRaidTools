@@ -2,6 +2,7 @@ local _, addon = ...
 
 local NameplateCastMarker = {}
 NameplateCastMarker.name = "NameplateCastMarker"
+NameplateCastMarker.isEnabled = false
 
 local managerFrame = CreateFrame("Frame")
 local watchersByUnit = {}
@@ -163,6 +164,13 @@ function NameplateCastMarker:OnInitialize()
             UnregisterWatcher(unit)
         end
     end)
+end
+
+function NameplateCastMarker:Enable()
+    if self.isEnabled then
+        return
+    end
+    self.isEnabled = true
 
     managerFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
     managerFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
@@ -172,6 +180,20 @@ function NameplateCastMarker:OnInitialize()
         if UnitExists(unit) then
             RegisterWatcher(unit)
         end
+    end
+end
+
+function NameplateCastMarker:Disable()
+    if not self.isEnabled then
+        return
+    end
+    self.isEnabled = false
+
+    managerFrame:UnregisterEvent("NAME_PLATE_UNIT_ADDED")
+    managerFrame:UnregisterEvent("NAME_PLATE_UNIT_REMOVED")
+
+    for unit in pairs(watchersByUnit) do
+        UnregisterWatcher(unit)
     end
 end
 

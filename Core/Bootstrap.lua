@@ -76,10 +76,14 @@ encounterFrame:SetScript("OnEvent", function(_, event, ...)
     if event == "ENCOUNTER_START" then
         local encounterID, encounterName, difficultyID, groupSize = ...
         if IsMythicRaidDifficulty(difficultyID) then
+            print(("ART: [%s] Mythic start (encounterId=%d)"):format(encounterName or "Unknown", encounterID or 0))
             ActivateEncounter(encounterID, encounterName, difficultyID, groupSize)
         end
     elseif event == "ENCOUNTER_END" then
         local encounterID, encounterName, difficultyID, groupSize, success = ...
+        if IsMythicRaidDifficulty(difficultyID) then
+            print(("ART: [%s] Mythic end (encounterId=%d, success=%d)"):format(encounterName or "Unknown", encounterID or 0, success or 0))
+        end
         DeactivateEncounter(encounterID, encounterName, difficultyID, groupSize, success)
     end
 end)
