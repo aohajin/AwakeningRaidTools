@@ -1,0 +1,3 @@
+local _, addon = ...
+local Boss = { name = "CrownOfTheCosmos" }
+addon:RegisterModule("Raids.Voidspire.CrownOfTheCosmos", Boss)

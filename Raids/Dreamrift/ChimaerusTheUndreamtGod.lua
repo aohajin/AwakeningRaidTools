@@ -1,0 +1,3 @@
+local _, addon = ...
+local Boss = { name = "ChimaerusTheUndreamtGod" }
+addon:RegisterModule("Raids.Dreamrift.ChimaerusTheUndreamtGod", Boss)

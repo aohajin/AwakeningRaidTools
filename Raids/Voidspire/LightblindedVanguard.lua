@@ -1,0 +1,3 @@
+local _, addon = ...
+local Boss = { name = "LightblindedVanguard" }
+addon:RegisterModule("Raids.Voidspire.LightblindedVanguard", Boss)

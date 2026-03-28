@@ -6,4 +6,25 @@
 ## SavedVariables: AwakeningRaidToolsDB
 ## X-Curse-Project-ID: 1497545
 
+Core/Bootstrap.lua
+
+Common/Interruptibility.lua
+Common/NameplateCastMarker.lua
+
+Raids/_index.lua
+Raids/Voidspire/_index.lua
+Raids/Voidspire/ImperatorAverzian.lua
+Raids/Voidspire/Vorasius.lua
+Raids/Voidspire/FallenKingSalhadaar.lua
+Raids/Voidspire/VaelgorAndEzzorak.lua
+Raids/Voidspire/LightblindedVanguard.lua
+Raids/Voidspire/CrownOfTheCosmos.lua
+
+Raids/Dreamrift/_index.lua
+Raids/Dreamrift/ChimaerusTheUndreamtGod.lua
+
+Raids/MarchOfQuelDanas/_index.lua
+Raids/MarchOfQuelDanas/BelorenChildOfAlar.lua
+Raids/MarchOfQuelDanas/MidnightFalls.lua
+
 AwakeningRaidTools.lua

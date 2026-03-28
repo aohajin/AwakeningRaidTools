@@ -1,0 +1,3 @@
+local _, addon = ...
+local Boss = { name = "MidnightFalls" }
+addon:RegisterModule("Raids.MarchOfQuelDanas.MidnightFalls", Boss)
