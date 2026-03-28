@@ -6,28 +6,42 @@ NameplateCastMarker.name = "NameplateCastMarker"
 local managerFrame = CreateFrame("Frame")
 local watchersByUnit = {}
 
+local function CreateMarker(parent, text, r, g, b)
+    local holder = CreateFrame("Frame", nil, parent)
+    holder:SetSize(64, 64)
+    holder:SetFrameStrata("TOOLTIP")
+    holder:SetFrameLevel(parent:GetFrameLevel() + 100)
+
+    local bg = holder:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(r, g, b, 0.95)
+    holder.bg = bg
+
+    local label = holder:CreateFontString(nil, "OVERLAY")
+    label:SetFont(STANDARD_TEXT_FONT, 32, "OUTLINE")
+    label:SetPoint("CENTER", holder, "CENTER", 0, 0)
+    label:SetTextColor(1, 1, 1, 1)
+    label:SetText(text)
+    holder.label = label
+
+    holder:Hide()
+    return holder
+end
+
 local function GetMarkers(namePlate)
     if not namePlate then
         return nil, nil
     end
 
     if not namePlate.ARTCastMarkerRed then
-        local red = namePlate:CreateFontString(nil, "OVERLAY")
-        red:SetFont(STANDARD_TEXT_FONT, 36, "OUTLINE")
-        red:SetPoint("CENTER", namePlate, "CENTER", -14, 30)
-        red:SetTextColor(1, 0.1, 0.1)
-        red:SetText("1")
-        red:Hide()
+        local red = CreateMarker(namePlate, "1", 0.9, 0.1, 0.1)
+        red:SetPoint("CENTER", namePlate, "CENTER", 0, 42)
         namePlate.ARTCastMarkerRed = red
     end
 
     if not namePlate.ARTCastMarkerGreen then
-        local green = namePlate:CreateFontString(nil, "OVERLAY")
-        green:SetFont(STANDARD_TEXT_FONT, 36, "OUTLINE")
-        green:SetPoint("CENTER", namePlate, "CENTER", 14, 30)
-        green:SetTextColor(0.1, 1, 0.1)
-        green:SetText("cc")
-        green:Hide()
+        local green = CreateMarker(namePlate, "cc", 0.1, 0.75, 0.2)
+        green:SetPoint("CENTER", namePlate, "CENTER", 0, 42)
         namePlate.ARTCastMarkerGreen = green
     end
 
@@ -47,6 +61,10 @@ local function ApplyCasting(unit)
     if not red or not green then
         return
     end
+    red:SetFrameStrata("TOOLTIP")
+    green:SetFrameStrata("TOOLTIP")
+    red:SetFrameLevel(namePlate:GetFrameLevel() + 100)
+    green:SetFrameLevel(namePlate:GetFrameLevel() + 100)
 
     local castName, _, _, _, _, _, _, notInterruptible = UnitCastingInfo(unit)
     if notInterruptible == nil then
