@@ -92,6 +92,22 @@ local function ApplyCasting(unit)
     green:Show()
 end
 
+local function StopCastTicker(watcher)
+    if watcher.castTicker then
+        watcher.castTicker:Cancel()
+        watcher.castTicker = nil
+    end
+end
+
+local function StartCastTicker(watcher)
+    if watcher.castTicker then
+        return
+    end
+    watcher.castTicker = C_Timer.NewTicker(0.05, function()
+        ApplyCasting(watcher.unit)
+    end)
+end
+
 local function RegisterWatcher(unit)
     if watchersByUnit[unit] then
         return
@@ -100,7 +116,11 @@ local function RegisterWatcher(unit)
     local watcher = CreateFrame("Frame")
     watcher.unit = unit
     watcher:SetScript("OnEvent", function(self, event)
-        if event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" or event == "UNIT_SPELLCAST_INTERRUPTED" or event == "UNIT_SPELLCAST_FAILED" then
+        if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_CHANNEL_START" then
+            StartCastTicker(self)
+            ApplyCasting(self.unit)
+        elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" or event == "UNIT_SPELLCAST_INTERRUPTED" or event == "UNIT_SPELLCAST_FAILED" then
+            StopCastTicker(self)
             HideMarkers(self.unit)
         else
             ApplyCasting(self.unit)
@@ -111,6 +131,8 @@ local function RegisterWatcher(unit)
     watcher:RegisterUnitEvent("UNIT_SPELLCAST_STOP", unit)
     watcher:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_START", unit)
     watcher:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_STOP", unit)
+    watcher:RegisterUnitEvent("UNIT_SPELLCAST_DELAYED", unit)
+    watcher:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", unit)
     watcher:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", unit)
     watcher:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", unit)
     watcher:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTIBLE", unit)
@@ -127,6 +149,7 @@ local function UnregisterWatcher(unit)
     end
 
     watcher:UnregisterAllEvents()
+    StopCastTicker(watcher)
     watcher:SetScript("OnEvent", nil)
     watchersByUnit[unit] = nil
     HideMarkers(unit)
