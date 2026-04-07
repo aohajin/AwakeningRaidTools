@@ -3,7 +3,7 @@ local _, addon = ...
 local NameplateCastMarker = {}
 NameplateCastMarker.name = "NameplateCastMarker"
 NameplateCastMarker.isEnabled = false
-NameplateCastMarker.excludeUnits = {}
+-- NameplateCastMarker.excludeUnits = {}
 
 local managerFrame = CreateFrame("Frame")
 local watchersByUnit = {}
@@ -57,47 +57,47 @@ local function HideMarkers(unit)
     if green then green:Hide() end
 end
 
-local function BuildExcludeUnits(options)
-    local out = {}
-    if type(options) ~= "table" then
-        return out
-    end
+-- local function BuildExcludeUnits(options)
+--     local out = {}
+--     if type(options) ~= "table" then
+--         return out
+--     end
 
-    local exclude = options.exclude or options.excludeUnits
-    if type(exclude) == "string" and exclude ~= "" then
-        out[1] = exclude
-        return out
-    end
+--     local exclude = options.exclude or options.excludeUnits
+--     if type(exclude) == "string" and exclude ~= "" then
+--         out[1] = exclude
+--         return out
+--     end
 
-    if type(exclude) == "table" then
-        for i = 1, #exclude do
-            local token = exclude[i]
-            if type(token) == "string" and token ~= "" then
-                out[#out + 1] = token
-            end
-        end
-    end
+--     if type(exclude) == "table" then
+--         for i = 1, #exclude do
+--             local token = exclude[i]
+--             if type(token) == "string" and token ~= "" then
+--                 out[#out + 1] = token
+--             end
+--         end
+--     end
 
-    return out
-end
+--     return out
+-- end
 
-local function GetVisibilityAlphaForUnit(unit)
-    local excludeUnits = NameplateCastMarker.excludeUnits
-    if type(excludeUnits) ~= "table" or #excludeUnits == 0 then
-        return 1
-    end
-    if not (C_CurveUtil and C_CurveUtil.EvaluateColorValueFromBoolean) then
-        return 1
-    end
+-- local function GetVisibilityAlphaForUnit(unit)
+--     -- local excludeUnits = NameplateCastMarker.excludeUnits
+--     -- if type(excludeUnits) ~= "table" or #excludeUnits == 0 then
+--     --     return 1
+--     -- end
+--     if not (C_CurveUtil and C_CurveUtil.EvaluateColorValueFromBoolean) then
+--         return 1
+--     end
 
-    local visibilityAlpha = 1
-    for i = 1, #excludeUnits do
-        local unitToken = excludeUnits[i]
-        visibilityAlpha = C_CurveUtil.EvaluateColorValueFromBoolean(UnitIsUnit(unit, unitToken), 0, visibilityAlpha)
-    end
+--     local visibilityAlpha = 1
+--     -- for i = 1, #excludeUnits do
+--     --     local unitToken = excludeUnits[i]
+--     --     visibilityAlpha = C_CurveUtil.EvaluateColorValueFromBoolean(UnitIsUnit(unit, unitToken), 0, visibilityAlpha)
+--     -- end
 
-    return visibilityAlpha or 1
-end
+--     return visibilityAlpha or 1
+-- end
 
 local function ApplyCasting(unit)
     local namePlate = C_NamePlate.GetNamePlateForUnit(unit)
@@ -129,9 +129,9 @@ local function ApplyCasting(unit)
         redAlpha = C_CurveUtil.EvaluateColorValueFromBoolean(notInterruptible, 1, 0)
         greenAlpha = C_CurveUtil.EvaluateColorValueFromBoolean(notInterruptible, 0, 1)
     end
-    local visibilityAlpha = GetVisibilityAlphaForUnit(unit)
-    red:SetAlpha(visibilityAlpha)
-    green:SetAlpha(visibilityAlpha)
+    -- local visibilityAlpha = GetVisibilityAlphaForUnit(unit)
+    -- red:SetAlpha(visibilityAlpha)
+    -- green:SetAlpha(visibilityAlpha)
     red.bg:SetAlpha(redAlpha or 1)
     red.label:SetAlpha(redAlpha or 1)
     green.bg:SetAlpha(greenAlpha or 1)
@@ -214,7 +214,7 @@ function NameplateCastMarker:OnInitialize()
 end
 
 function NameplateCastMarker:Enable(options)
-    self.excludeUnits = BuildExcludeUnits(options)
+    -- self.excludeUnits = BuildExcludeUnits(options)
     if self.isEnabled then
         for unit in pairs(watchersByUnit) do
             ApplyCasting(unit)
@@ -239,7 +239,7 @@ function NameplateCastMarker:Disable()
         return
     end
     self.isEnabled = false
-    self.excludeUnits = {}
+    --self.excludeUnits = {}
 
     managerFrame:UnregisterEvent("NAME_PLATE_UNIT_ADDED")
     managerFrame:UnregisterEvent("NAME_PLATE_UNIT_REMOVED")

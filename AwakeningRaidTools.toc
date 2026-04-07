@@ -1,5 +1,5 @@
 ## Interface: 120001, 120005
-## Version: 0.1.1
+## Version: 0.2.2
 ## Title: Awakening Raid Tools
 ## Author: 怨念物
 ## Notes: Raid utility toolkit for Awakening.
@@ -8,7 +8,13 @@
 
 Core/Bootstrap.lua
 
+Locales/enUS.lua
+Locales/zhCN.lua
+Locales/zhTW.lua
+Locales/_index.lua
+
 Common/NameplateCastMarker.lua
+Common/SpecGearMismatchWarning.lua
 
 Raids/_index.lua
 Raids/Voidspire/_index.lua
@@ -38,3 +44,5 @@ Raids/Aberrus/EchoOfNeltharion.lua
 Raids/Aberrus/ScalecommanderSarkareth.lua
 
 AwakeningRaidTools.lua
+
+Options/Options.lua
