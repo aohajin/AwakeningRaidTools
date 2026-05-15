@@ -32,4 +32,10 @@ addon.locales.zhTW = addon.locales.zhTW or {
     LIST_SEPARATOR = "；",
 
     OPTIONS_SPEC_GEAR_MISMATCH = "啟用錯誤裝備檢查",
+
+    OPTIONS_GENERAL_HEADER = "一般",
+    OPTIONS_FALLENKING_INTERRUPT_DISPLAY = "啟用打斷顯示",
+    OPTIONS_FALLENKING_INTERRUPT_DISPLAY_DESC = "在戰鬥中於敵方姓名板上顯示打斷標記。",
+    OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY = "關閉粒子效果（P1-P2）",
+    OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY_DESC = "在P1-P2階段將粒子密度降至最低以提高可見性，P3自動恢復。",
 }

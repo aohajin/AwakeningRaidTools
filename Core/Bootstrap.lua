@@ -48,6 +48,11 @@ local function ActivateEncounter(encounterID, encounterName, difficultyID, group
             module:OnMythicEncounterStart(encounterID, encounterName, difficultyID, groupSize)
         end
     end
+
+    local phaseTracker = addon.modules["Common.PhaseTracker"]
+    if phaseTracker then
+        phaseTracker:OnEncounterStart(encounterID)
+    end
 end
 
 local function DeactivateEncounter(encounterID, encounterName, difficultyID, groupSize, success)
@@ -67,11 +72,17 @@ local function DeactivateEncounter(encounterID, encounterName, difficultyID, gro
     if addon.activeEncounterID == encounterID then
         addon.activeEncounterID = nil
     end
+
+    local phaseTracker = addon.modules["Common.PhaseTracker"]
+    if phaseTracker then
+        phaseTracker:OnEncounterEnd(encounterID)
+    end
 end
 
 local encounterFrame = CreateFrame("Frame")
 encounterFrame:RegisterEvent("ENCOUNTER_START")
 encounterFrame:RegisterEvent("ENCOUNTER_END")
+encounterFrame:RegisterEvent("ENCOUNTER_TIMELINE_EVENT_ADDED")
 encounterFrame:SetScript("OnEvent", function(_, event, ...)
     if event == "ENCOUNTER_START" then
         local encounterID, encounterName, difficultyID, groupSize = ...
@@ -85,5 +96,14 @@ encounterFrame:SetScript("OnEvent", function(_, event, ...)
             print(("ART: [%s] Mythic end (encounterId=%d, success=%d)"):format(encounterName or "Unknown", encounterID or 0, success or 0))
         end
         DeactivateEncounter(encounterID, encounterName, difficultyID, groupSize, success)
+    elseif event == "ENCOUNTER_TIMELINE_EVENT_ADDED" then
+        local encounterID = select(1, ...)
+        local duration = select(4, ...)
+        if addon.activeEncounterID and addon.activeEncounterID == encounterID then
+            local phaseTracker = addon.modules["Common.PhaseTracker"]
+            if phaseTracker then
+                phaseTracker:HandleTimelineEvent(encounterID, duration)
+            end
+        end
     end
 end)

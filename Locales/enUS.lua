@@ -32,4 +32,10 @@ addon.locales.enUS = addon.locales.enUS or {
     LIST_SEPARATOR = "; ",
 
     OPTIONS_SPEC_GEAR_MISMATCH = "Enable gear mismatch check",
+
+    OPTIONS_GENERAL_HEADER = "General",
+    OPTIONS_FALLENKING_INTERRUPT_DISPLAY = "Enable interrupt display",
+    OPTIONS_FALLENKING_INTERRUPT_DISPLAY_DESC = "Show interrupt markers on enemy nameplates during the encounter.",
+    OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY = "Disable particle effects (P1-P2)",
+    OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY_DESC = "Set particle density to minimum during phases 1-2 to improve visibility. Restores normal settings in phase 3.",
 }
