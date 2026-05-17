@@ -69,6 +69,16 @@ end)
 
 Transitions are matched forward-only with `ApproximatelyEqual(duration, target, 0.2)` tolerance. A 5s swap cooldown prevents rapid re-triggers.
 
+## WA String Decode
+
+When a user pastes a WeakAuras/M33kAura export string (`WA:2!...`), run:
+
+```
+node scripts/decode-wa.js "<WA:2!...>"
+```
+
+This decodes the EncodeForPrint → zlib deflate chain and extracts readable text (aura name, triggers, custom code, config options). Does not require the game client — works purely in Node.js with no dependencies beyond `zlib` (built-in).
+
 ## Version Bump and Release
 
 ### Bump checklist

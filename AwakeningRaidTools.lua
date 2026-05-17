@@ -11,3 +11,10 @@ frame:SetScript("OnEvent", function(_, event, loadedAddonName)
         end
     end
 end)
+
+SLASH_ART1 = "/art"
+SlashCmdList["ART"] = function()
+    if addon.optionsCategory then
+        Settings.OpenToCategory(addon.optionsCategory:GetID())
+    end
+end

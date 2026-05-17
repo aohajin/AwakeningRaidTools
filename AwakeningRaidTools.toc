@@ -1,9 +1,10 @@
 ## Interface: 120001, 120005
-## Version: 0.2.3
-## Title: Awakening Raid Tools
+## Version: 0.2.4
+## Title: 覺 醒 Raid Tools
 ## Author: 怨念物
 ## Notes: Raid utility toolkit for Awakening.
 ## SavedVariables: AwakeningRaidToolsDB
+## OptionalDeps: Ace3
 ## X-Curse-Project-ID: 1497545
 
 Core/Bootstrap.lua
@@ -16,6 +17,12 @@ Locales/_index.lua
 Common/PhaseTracker.lua
 Common/NameplateCastMarker.lua
 Common/SpecGearMismatchWarning.lua
+
+Libs/LibStub/LibStub.lua
+Libs/CallbackHandler-1.0/CallbackHandler-1.0.lua
+Libs/AceConsole-3.0/AceConsole-3.0.xml
+Libs/AceGUI-3.0/AceGUI-3.0.xml
+Libs/AceConfig-3.0/AceConfig-3.0.xml
 
 Raids/_index.lua
 Raids/Voidspire/_index.lua
