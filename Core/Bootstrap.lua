@@ -2,6 +2,14 @@ local addonName, addon = ...
 
 addon.name = addonName
 addon.modules = addon.modules or {}
+
+function addon:Dbg(moduleName, msg)
+    if not (AwakeningRaidToolsDB and AwakeningRaidToolsDB.DebugEnabled) then return end
+    local db = AwakeningRaidToolsDB
+    if not db.DebugLog then db.DebugLog = {} end
+    table.insert(db.DebugLog, ("[%.3f][%s] %s"):format(GetTime(), moduleName, msg))
+    if #db.DebugLog > 1000 then table.remove(db.DebugLog, 1) end
+end
 addon.encounterModulesByID = addon.encounterModulesByID or {}
 addon.activeEncounterID = nil
 addon.activeEncounterModules = addon.activeEncounterModules or {}

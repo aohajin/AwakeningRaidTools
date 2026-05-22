@@ -32,11 +32,16 @@ addon.locales.zhCN = addon.locales.zhCN or {
     LIST_SEPARATOR = "；",
 
 
+    OPTIONS_DEBUG_ENABLE = "启用调试日志",
+    OPTIONS_DEBUG_ENABLE_DESC = "将调试日志写入SavedVariables。使用 /ficlog 在游戏内查看，或登出后查看WTF文件夹。",
+
     OPTIONS_SPEC_GEAR_MISMATCH = "启用错误装备检查",
 
     OPTIONS_GENERAL_HEADER = "常规",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY = "启用打断显示",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY_DESC = "在战斗中于敌方姓名板上显示打断标记。",
+    OPTIONS_FOCUS_INTERRUPT_COUNTER = "显示焦点打断计数",
+    OPTIONS_FOCUS_INTERRUPT_COUNTER_DESC = "在战斗中于焦点目标的姓名板上显示当前打断计数。",
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY = "关闭粒子效果（P1-P2）",
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY_DESC = "在P1-P2阶段将粒子密度降至最低以提高帧数，P3自动恢复。",
 }

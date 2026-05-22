@@ -32,11 +32,16 @@ addon.locales.zhTW = addon.locales.zhTW or {
     LIST_SEPARATOR = "；",
 
 
+    OPTIONS_DEBUG_ENABLE = "啟用除錯日誌",
+    OPTIONS_DEBUG_ENABLE_DESC = "將除錯日誌寫入SavedVariables。使用 /ficlog 在遊戲內查看，或登出後查看WTF資料夾。",
+
     OPTIONS_SPEC_GEAR_MISMATCH = "啟用錯誤裝備檢查",
 
     OPTIONS_GENERAL_HEADER = "一般",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY = "啟用打斷顯示",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY_DESC = "在戰鬥中於敵方姓名板上顯示打斷標記。",
+    OPTIONS_FOCUS_INTERRUPT_COUNTER = "顯示焦點打斷計數",
+    OPTIONS_FOCUS_INTERRUPT_COUNTER_DESC = "在戰鬥中於焦點目標的姓名板上顯示當前打斷計數。",
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY = "關閉粒子效果（P1-P2）",
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY_DESC = "在P1-P2階段將粒子密度降至最低以提高幀數，P3自動恢復。",
 }

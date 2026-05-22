@@ -198,6 +198,16 @@ panel:SetScript("OnShow", function(self)
 		end)
 	currentY = currentY - CHECKBOX_SPACING
 
+	-- Debug toggle
+	local debugLabel = L.OPTIONS_DEBUG_ENABLE or "Enable debug logging"
+	local debugDesc = L.OPTIONS_DEBUG_ENABLE_DESC
+	CreateCheckbox(debugLabel, currentY, INDENT_1,
+		AwakeningRaidToolsDB and AwakeningRaidToolsDB.DebugEnabled == true,
+		function(checked)
+			AwakeningRaidToolsDB.DebugEnabled = checked or nil
+		end, debugDesc)
+	currentY = currentY - CHECKBOX_SPACING
+
 	for _, gen in ipairs(generalFeatures) do
 		for featureName, featureDef in pairs(gen.features) do
 			local label = L[featureDef.labelKey] or featureDef.labelKey or featureName

@@ -32,11 +32,17 @@ addon.locales.enUS = addon.locales.enUS or {
     LIST_SEPARATOR = "; ",
 
 
+    OPTIONS_DEBUG_ENABLE = "Enable debug logging",
+    OPTIONS_DEBUG_ENABLE_DESC = "Write debug logs to SavedVariables. Use /ficlog to view in-game, or check WTF folder after logout.",
+
     OPTIONS_SPEC_GEAR_MISMATCH = "Enable gear mismatch check",
 
     OPTIONS_GENERAL_HEADER = "General",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY = "Enable interrupt display",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY_DESC = "Show interrupt markers on enemy nameplates during the encounter.",
+    OPTIONS_FOCUS_INTERRUPT_COUNTER = "Show focus interrupt counter",
+    OPTIONS_FOCUS_INTERRUPT_COUNTER_DESC =
+    "Displays the current interrupt count on your focus target's nameplate during combat.",
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY = "Disable particle effects (P1-P2)",
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY_DESC =
     "Set particle density to minimum during phases 1-2 to improve frame rate. Restores normal settings in phase 3.",
