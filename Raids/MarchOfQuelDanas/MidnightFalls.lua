@@ -176,7 +176,10 @@ end
 local function CounterOnEvent(_, event, unit)
 	if not counterActive then return end
 
+	if issecretvalue(unit) then return end
+
 	if event == "UNIT_SPELLCAST_START" then
+
 		if not IsBossToken(unit) then return end
 		addon:Dbg("MF", ("START %s hasF=%s init=%s fc=%d"):format(unit, tostring(hasFocus), tostring(isInitialized), focusCount))
 		if not hasFocus then
