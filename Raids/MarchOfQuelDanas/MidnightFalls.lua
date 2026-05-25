@@ -41,18 +41,29 @@ local function SaveCVars()
 	if particle ~= nil then savedCVars.particle = particle end
 	local raidParticle = C_CVar.GetCVar("RaidGraphicsParticleDensity")
 	if raidParticle ~= nil then savedCVars.raidParticle = raidParticle end
+	addon:Dbg("MF", ("CVar save: particle=%s raid=%s"):format(
+		tostring(savedCVars.particle), tostring(savedCVars.raidParticle)))
 end
 
 local function DisableParticleCVars()
+	addon:Dbg("MF", "CVar disable: particle=0 raid=0")
 	C_CVar.SetCVar("graphicsParticleDensity", "0")
 	C_CVar.SetCVar("RaidGraphicsParticleDensity", "0")
 end
 
 local function RestoreCVars()
+	addon:Dbg("MF", ("CVar restore called: restored=%s saved=(%s,%s)"):format(
+		tostring(cvarsRestored), tostring(savedCVars.particle), tostring(savedCVars.raidParticle)))
 	if cvarsRestored then return end
 	cvarsRestored = true
-	if savedCVars.particle then C_CVar.SetCVar("graphicsParticleDensity", savedCVars.particle) end
-	if savedCVars.raidParticle then C_CVar.SetCVar("RaidGraphicsParticleDensity", savedCVars.raidParticle) end
+	if savedCVars.particle then
+		addon:Dbg("MF", ("CVar restore particle -> %s"):format(savedCVars.particle))
+		C_CVar.SetCVar("graphicsParticleDensity", savedCVars.particle)
+	end
+	if savedCVars.raidParticle then
+		addon:Dbg("MF", ("CVar restore raid -> %s"):format(savedCVars.raidParticle))
+		C_CVar.SetCVar("RaidGraphicsParticleDensity", savedCVars.raidParticle)
+	end
 	wipe(savedCVars)
 end
 
@@ -175,11 +186,9 @@ end
 
 local function CounterOnEvent(_, event, unit)
 	if not counterActive then return end
-
 	if issecretvalue(unit) then return end
 
 	if event == "UNIT_SPELLCAST_START" then
-
 		if not IsBossToken(unit) then return end
 		addon:Dbg("MF", ("START %s hasF=%s init=%s fc=%d"):format(unit, tostring(hasFocus), tostring(isInitialized), focusCount))
 		if not hasFocus then

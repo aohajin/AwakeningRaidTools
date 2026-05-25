@@ -19,6 +19,12 @@ SlashCmdList["ART"] = function()
     end
 end
 
+SLASH_PARTICLE1 = "/particle"
+SlashCmdList["PARTICLE"] = function()
+    print("ART: graphicsParticleDensity = " .. tostring(C_CVar.GetCVar("graphicsParticleDensity")))
+    print("ART: RaidGraphicsParticleDensity = " .. tostring(C_CVar.GetCVar("RaidGraphicsParticleDensity")))
+end
+
 SLASH_FICLOG1 = "/ficlog"
 SlashCmdList["FICLOG"] = function()
     local log = AwakeningRaidToolsDB and AwakeningRaidToolsDB.DebugLog

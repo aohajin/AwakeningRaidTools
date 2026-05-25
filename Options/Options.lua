@@ -26,7 +26,7 @@ local function SetFeatureEnabled(encounterId, featureName, value)
 	local db = AwakeningRaidToolsDB
 	if not db.encounters then db.encounters = {} end
 	if not db.encounters[encounterId] then db.encounters[encounterId] = {} end
-	db.encounters[encounterId][featureName] = value or nil
+	db.encounters[encounterId][featureName] = value and true or false
 end
 
 local function GetGeneralFeatureEnabled(key, default)
@@ -36,7 +36,7 @@ local function GetGeneralFeatureEnabled(key, default)
 end
 
 local function SetGeneralFeatureEnabled(key, value)
-	AwakeningRaidToolsDB[key] = value or nil
+	AwakeningRaidToolsDB[key] = value and true or false
 end
 
 local function GetRaidName(raidKey)
