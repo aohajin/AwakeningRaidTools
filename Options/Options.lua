@@ -9,6 +9,7 @@ local SECTION_SPACING = 32
 local CHECKBOX_SPACING = 28
 local INDENT_1 = 32
 local INDENT_2 = 48
+local INDENT_3 = 64
 local LABEL_WIDTH = 360
 
 local RAID_ORDER = {"Voidspire", "Dreamrift", "MarchOfQuelDanas", "Aberrus"}
@@ -27,6 +28,22 @@ local function SetFeatureEnabled(encounterId, featureName, value)
 	if not db.encounters then db.encounters = {} end
 	if not db.encounters[encounterId] then db.encounters[encounterId] = {} end
 	db.encounters[encounterId][featureName] = value and true or false
+end
+
+local function GetSubFeatureEnabled(encounterId, parentKey, subKey, default)
+	local db = AwakeningRaidToolsDB
+	if db and db.encounters and db.encounters[encounterId] then
+		local val = db.encounters[encounterId][parentKey .. "_" .. subKey]
+		if val ~= nil then return val end
+	end
+	return default ~= false
+end
+
+local function SetSubFeatureEnabled(encounterId, parentKey, subKey, value)
+	local db = AwakeningRaidToolsDB
+	if not db.encounters then db.encounters = {} end
+	if not db.encounters[encounterId] then db.encounters[encounterId] = {} end
+	db.encounters[encounterId][parentKey .. "_" .. subKey] = value and true or false
 end
 
 local function GetGeneralFeatureEnabled(key, default)
@@ -173,7 +190,7 @@ panel:SetScript("OnShow", function(self)
 			cb:SetScript("OnLeave", function() GameTooltip:Hide() end)
 		end
 
-		return 20
+		return cb
 	end
 
 	-- Title
@@ -243,12 +260,34 @@ panel:SetScript("OnShow", function(self)
 				for featureName, featureDef in pairs(boss.features) do
 					local label = L[featureDef.labelKey] or featureDef.labelKey or featureName
 					local tooltip = featureDef.descKey and L[featureDef.descKey] or nil
-					CreateCheckbox(label, currentY, INDENT_2,
+					local subWidgets = {}
+
+					local parentCB = CreateCheckbox(label, currentY, INDENT_2,
 						GetFeatureEnabled(boss.encounterId, featureName, featureDef.default),
 						function(checked)
 							SetFeatureEnabled(boss.encounterId, featureName, checked)
+							for _, sub in ipairs(subWidgets) do
+								sub:SetShown(checked)
+							end
 						end, tooltip)
 					currentY = currentY - CHECKBOX_SPACING
+
+					-- Sub-features
+					if featureDef.subFeatures then
+						local parentChecked = GetFeatureEnabled(boss.encounterId, featureName, featureDef.default)
+						for subKey, subDef in pairs(featureDef.subFeatures) do
+							local subLabel = L[subDef.labelKey] or subDef.labelKey or subKey
+							local subTooltip = subDef.descKey and L[subDef.descKey] or nil
+							local subCB = CreateCheckbox(subLabel, currentY, INDENT_3,
+								GetSubFeatureEnabled(boss.encounterId, featureName, subKey, subDef.default),
+								function(checked)
+									SetSubFeatureEnabled(boss.encounterId, featureName, subKey, checked)
+								end, subTooltip)
+							subCB:SetShown(parentChecked)
+							table.insert(subWidgets, subCB)
+							currentY = currentY - CHECKBOX_SPACING
+						end
+					end
 				end
 
 				currentY = currentY - 4

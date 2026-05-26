@@ -18,6 +18,26 @@ local Boss = {
 			default = true,
 			labelKey = "OPTIONS_FOCUS_INTERRUPT_COUNTER",
 			descKey  = "OPTIONS_FOCUS_INTERRUPT_COUNTER_DESC",
+			subFeatures = {
+				nameplate = {
+					type = "toggle",
+					default = true,
+					labelKey = "OPTIONS_FIC_NAMEPLATE",
+					descKey  = "OPTIONS_FIC_NAMEPLATE_DESC",
+				},
+				focusFrame = {
+					type = "toggle",
+					default = false,
+					labelKey = "OPTIONS_FIC_FOCUS_FRAME",
+					descKey  = "OPTIONS_FIC_FOCUS_FRAME_DESC",
+				},
+				centerScreen = {
+					type = "toggle",
+					default = false,
+					labelKey = "OPTIONS_FIC_CENTER_SCREEN",
+					descKey  = "OPTIONS_FIC_CENTER_SCREEN_DESC",
+				},
+			},
 		},
 	},
 }
@@ -28,6 +48,15 @@ local function IsBossFeatureEnabled(key)
 		return db.encounters[3183][key] ~= false
 	end
 	return true
+end
+
+local function IsSubFeatureEnabled(parentKey, subKey, default)
+	local db = AwakeningRaidToolsDB
+	if db and db.encounters and db.encounters[3183] then
+		local val = db.encounters[3183][parentKey .. "_" .. subKey]
+		if val ~= nil then return val end
+	end
+	return default ~= false
 end
 
 -- ============================================================
@@ -84,8 +113,14 @@ local counterActive = false
 
 local resetTimer = nil
 local counterEventFrame = nil
-local markerFrame = nil
-local focusMarkerFrame = nil
+
+-- Layer 1: basic helpers (no local deps)
+local function IsBossToken(unit)
+	for _, token in ipairs(BOSS_TOKENS) do
+		if unit == token then return true end
+	end
+	return false
+end
 
 local function CounterReset()
 	wipe(trackCounts)
@@ -94,11 +129,14 @@ local function CounterReset()
 	if resetTimer then resetTimer:Cancel(); resetTimer = nil end
 end
 
+-- Layer 2: functions that depend on Layer 1
 local function CounterFullReset()
 	CounterReset()
 	hasFocus = false
-	if markerFrame then markerFrame:Hide() end
-	if focusMarkerFrame then focusMarkerFrame:Hide() end
+	local counter = addon.modules["Common.Counter"]
+	if counter then counter:Hide() end
+	local castBar = addon.modules["Common.CastBar"]
+	if castBar then castBar:Hide() end
 end
 
 local function CounterStop()
@@ -124,83 +162,6 @@ local function StartResetTimer()
 	end)
 end
 
-local function EnsureMarker()
-	if not markerFrame then
-		local holder = CreateFrame("Frame", nil, UIParent)
-		holder:SetSize(52, 52)
-		holder:SetFrameStrata("TOOLTIP")
-		local bg = holder:CreateTexture(nil, "BACKGROUND")
-		bg:SetAllPoints()
-		bg:SetColorTexture(0.1, 0.75, 0.2, 0.95)
-		local label = holder:CreateFontString(nil, "OVERLAY")
-		label:SetFont(STANDARD_TEXT_FONT, 28, "OUTLINE")
-		label:SetPoint("CENTER", holder, "CENTER", 0, 0)
-		label:SetTextColor(1, 1, 1, 1)
-		holder.bg = bg; holder.label = label
-		markerFrame = holder
-	end
-	return markerFrame
-end
-
-local function EnsureFocusMarker()
-	if not focusMarkerFrame then
-		local holder = CreateFrame("Frame", nil, UIParent)
-		holder:SetSize(40, 40)
-		holder:SetFrameStrata("TOOLTIP")
-		local bg = holder:CreateTexture(nil, "BACKGROUND")
-		bg:SetAllPoints()
-		bg:SetColorTexture(0.1, 0.75, 0.2, 0.95)
-		local label = holder:CreateFontString(nil, "OVERLAY")
-		label:SetFont(STANDARD_TEXT_FONT, 22, "OUTLINE")
-		label:SetPoint("CENTER", holder, "CENTER", 0, 0)
-		label:SetTextColor(1, 1, 1, 1)
-		holder.bg = bg; holder.label = label
-		focusMarkerFrame = holder
-	end
-	return focusMarkerFrame
-end
-
-local function ShowMarker(count)
-	addon:Dbg("MF", ("ShowMarker count=%d"):format(count))
-	-- Nameplate
-	local namePlate = C_NamePlate.GetNamePlateForUnit("focus")
-	if namePlate then
-		local marker = EnsureMarker()
-		marker:ClearAllPoints()
-		marker:SetPoint("CENTER", namePlate, "CENTER", 0, 42)
-		marker.label:SetText(tostring(count))
-		marker:Show()
-	end
-	-- Focus frame
-	if _G.ExFocusCastAnchor and _G.ExFocusCastAnchor:IsShown() then
-		local fm = EnsureFocusMarker()
-		fm:ClearAllPoints()
-		fm:SetPoint("RIGHT", _G.ExFocusCastAnchor, "LEFT", -6, 0)
-		fm:SetScale(2)
-		fm.label:SetText(tostring(count))
-		fm:Show()
-	elseif FocusFrameSpellBar then
-		local fm = EnsureFocusMarker()
-		fm:ClearAllPoints()
-		fm:SetPoint("LEFT", FocusFrameSpellBar, "LEFT", -56, 0)
-		fm:SetScale(1)
-		fm.label:SetText(tostring(count))
-		fm:Show()
-	end
-end
-
-local function HideMarker()
-	if markerFrame then markerFrame:Hide() end
-	if focusMarkerFrame then focusMarkerFrame:Hide() end
-end
-
-local function IsBossToken(unit)
-	for _, token in ipairs(BOSS_TOKENS) do
-		if unit == token then return true end
-	end
-	return false
-end
-
 local function InitTracking()
 	for _, token in ipairs(BOSS_TOKENS) do
 		if trackCounts[token] == nil then trackCounts[token] = 0 end
@@ -224,6 +185,39 @@ local function TrySetFocus()
 	return true
 end
 
+-- Layer 3: Display & event handler (depends on Layers 1-2 + modules)
+local function DisplayCounter(count)
+	local counter = addon.modules["Common.Counter"]
+	if not counter then return end
+
+	if IsSubFeatureEnabled("focusInterruptCounter", "nameplate", true) then
+		local np = C_NamePlate.GetNamePlateForUnit("focus")
+		addon:Dbg("MF", ("np=%s"):format(tostring(np)))
+		if np then
+			counter:SetAnchor("np", np, "CENTER", "CENTER", 0, 42)
+			counter:Show("np", count)
+		end
+	end
+	if IsSubFeatureEnabled("focusInterruptCounter", "focusFrame", false) then
+		if _G.ExFocusCastAnchor and _G.ExFocusCastAnchor:IsShown() then
+			counter:SetAnchor("ff", _G.ExFocusCastAnchor, "RIGHT", "LEFT", -6, 0)
+			counter:Show("ff", count)
+		end
+	end
+	if IsSubFeatureEnabled("focusInterruptCounter", "centerScreen", false) then
+		local castBar = addon.modules["Common.CastBar"]
+		if castBar then
+			castBar:SetAnchor(UIParent, "CENTER", "CENTER", 0, 200)
+			castBar:Show("focus")
+			local icon = castBar:GetIconFrame()
+			if icon then
+				counter:SetAnchor("center", icon, "RIGHT", "LEFT", -8, 0)
+			end
+		end
+		counter:Show("center", count, 1.5)
+	end
+end
+
 local function CounterOnEvent(_, event, unit)
 	if not counterActive then return end
 	if issecretvalue(unit) then return end
@@ -235,7 +229,8 @@ local function CounterOnEvent(_, event, unit)
 			if not hasFocus then return end
 		end
 		if UnitIsUnit(unit, "focus") then
-			ShowMarker(focusCount + 1)
+			DisplayCounter(focusCount + 1)
+
 		end
 	elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
 		if not IsBossToken(unit) then return end
@@ -248,25 +243,34 @@ local function CounterOnEvent(_, event, unit)
 		if resetTimer then resetTimer:Cancel() end
 		StartResetTimer()
 	elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" then
-		if hasFocus and UnitIsUnit(unit, "focus") then HideMarker() end
+		if hasFocus and UnitIsUnit(unit, "focus") then
+			local counter = addon.modules["Common.Counter"]
+			if counter then counter:Hide() end
+			local castBar = addon.modules["Common.CastBar"]
+			if castBar then castBar:Hide() end
+		end
 	elseif event == "PLAYER_FOCUS_CHANGED" then
 		if not GetUnitName("focus", true) then
-			HideMarker(); hasFocus = false; return
+			CounterFullReset(); hasFocus = false; return
 		end
-		if hasFocus then HideMarker(); hasFocus = false; focusCount = 0 end
+		if hasFocus then CounterFullReset(); hasFocus = false; focusCount = 0 end
 		TrySetFocus()
+		if hasFocus and (UnitCastingInfo("focus") or UnitChannelInfo("focus")) then
+			DisplayCounter(focusCount + 1)
+		end
 	elseif event == "UNIT_DIED" then
 		addon:Dbg("MF", ("DIED: %s hasF=%s"):format(tostring(unit), tostring(hasFocus)))
 		if not UnitExists("boss2") then
-			HideMarker(); CounterFullReset(); return
+			CounterFullReset(); return
 		end
 		if IsBossToken(unit) then trackCounts[unit] = 0 end
 		if hasFocus and UnitIsUnit(unit, "focus") then
-			HideMarker(); hasFocus = false; focusCount = 0
+			CounterFullReset(); hasFocus = false; focusCount = 0
 		end
 	end
 end
 
+-- Layer 4: module lifecycle (depends on all above)
 local function CounterStart()
 	addon:Dbg("MF", "counter: start")
 	if not counterEventFrame then
@@ -280,7 +284,6 @@ local function CounterStart()
 	counterEventFrame:RegisterEvent("PLAYER_FOCUS_CHANGED")
 	counterEventFrame:RegisterEvent("UNIT_DIED")
 	CounterFullReset()
-	StartResetTimer()
 	counterActive = true
 end
 

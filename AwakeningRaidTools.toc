@@ -1,8 +1,8 @@
 ## Interface: 120001, 120005
-## Version: 0.2.8
+## Version: 0.2.9
 ## Title: 覺 醒 Raid Tools
 ## Author: 怨念物
-## Notes: Raid utility toolkit for Awakening.
+## Notes: Raid utility toolkit for 覺 醒 guild.
 ## SavedVariables: AwakeningRaidToolsDB
 ## OptionalDeps: Ace3
 ## X-Curse-Project-ID: 1497545
@@ -15,6 +15,8 @@ Locales/zhTW.lua
 Locales/_index.lua
 
 Common/PhaseTracker.lua
+Common/CastBar.lua
+Common/Counter.lua
 Common/NameplateCastMarker.lua
 Common/SpecGearMismatchWarning.lua
 
