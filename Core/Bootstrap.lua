@@ -73,7 +73,8 @@ end
 local function DeactivateEncounter(encounterID, encounterName, difficultyID, groupSize, success)
     for module in pairs(addon.activeEncounterModules) do
         local moduleEncounterID = module.encounterId or module.encounterID
-        if moduleEncounterID == encounterID then
+        local isTest = module.testEncounterIds
+        if moduleEncounterID == encounterID or (isTest and tContains(isTest, encounterID)) then
             if type(module.OnEncounterEnd) == "function" then
                 module:OnEncounterEnd(encounterID, encounterName, difficultyID, groupSize, success)
             end
