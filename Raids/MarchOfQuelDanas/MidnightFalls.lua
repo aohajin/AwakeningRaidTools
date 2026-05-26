@@ -202,6 +202,9 @@ local function DisplayCounter(count)
 		if _G.ExFocusCastAnchor and _G.ExFocusCastAnchor:IsShown() then
 			counter:SetAnchor("ff", _G.ExFocusCastAnchor, "RIGHT", "LEFT", -6, 0)
 			counter:Show("ff", count)
+		elseif FocusFrameSpellBar then
+			counter:SetAnchor("ff", FocusFrameSpellBar, "LEFT", "LEFT", -56, 0)
+			counter:Show("ff", count)
 		end
 	end
 	if IsSubFeatureEnabled("focusInterruptCounter", "centerScreen", false) then
