@@ -23,6 +23,13 @@ function addon:RegisterModule(name, module)
         self.encounterModulesByID[encounterID] = self.encounterModulesByID[encounterID] or {}
         table.insert(self.encounterModulesByID[encounterID], module)
     end
+    -- Register for test encounter IDs (temporary)
+    if module.testEncounterIds then
+        for _, eid in ipairs(module.testEncounterIds) do
+            self.encounterModulesByID[eid] = self.encounterModulesByID[eid] or {}
+            table.insert(self.encounterModulesByID[eid], module)
+        end
+    end
 end
 
 function addon:InitializeModules()

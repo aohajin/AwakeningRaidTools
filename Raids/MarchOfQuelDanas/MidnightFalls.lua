@@ -4,6 +4,8 @@ local Boss = {
 	name = "MidnightFalls",
 	encounterId = 3183,
 	mythicOnly = true,
+	-- TODO: remove after testing
+	testEncounterIds = {2590},
 	features = {
 		particleDensity = {
 			type = "toggle",
@@ -83,6 +85,7 @@ local counterActive = false
 local resetTimer = nil
 local counterEventFrame = nil
 local markerFrame = nil
+local focusMarkerFrame = nil
 
 local function CounterReset()
 	wipe(trackCounts)
@@ -95,6 +98,7 @@ local function CounterFullReset()
 	CounterReset()
 	hasFocus = false
 	if markerFrame then markerFrame:Hide() end
+	if focusMarkerFrame then focusMarkerFrame:Hide() end
 end
 
 local function CounterStop()
@@ -132,26 +136,62 @@ local function EnsureMarker()
 		label:SetFont(STANDARD_TEXT_FONT, 28, "OUTLINE")
 		label:SetPoint("CENTER", holder, "CENTER", 0, 0)
 		label:SetTextColor(1, 1, 1, 1)
-		holder.bg = bg
-		holder.label = label
+		holder.bg = bg; holder.label = label
 		markerFrame = holder
 	end
 	return markerFrame
 end
 
+local function EnsureFocusMarker()
+	if not focusMarkerFrame then
+		local holder = CreateFrame("Frame", nil, UIParent)
+		holder:SetSize(40, 40)
+		holder:SetFrameStrata("TOOLTIP")
+		local bg = holder:CreateTexture(nil, "BACKGROUND")
+		bg:SetAllPoints()
+		bg:SetColorTexture(0.1, 0.75, 0.2, 0.95)
+		local label = holder:CreateFontString(nil, "OVERLAY")
+		label:SetFont(STANDARD_TEXT_FONT, 22, "OUTLINE")
+		label:SetPoint("CENTER", holder, "CENTER", 0, 0)
+		label:SetTextColor(1, 1, 1, 1)
+		holder.bg = bg; holder.label = label
+		focusMarkerFrame = holder
+	end
+	return focusMarkerFrame
+end
+
 local function ShowMarker(count)
 	addon:Dbg("MF", ("ShowMarker count=%d"):format(count))
+	-- Nameplate
 	local namePlate = C_NamePlate.GetNamePlateForUnit("focus")
-	if not namePlate then return end
-	local marker = EnsureMarker()
-	marker:ClearAllPoints()
-	marker:SetPoint("CENTER", namePlate, "CENTER", 0, 42)
-	marker.label:SetText(tostring(count))
-	marker:Show()
+	if namePlate then
+		local marker = EnsureMarker()
+		marker:ClearAllPoints()
+		marker:SetPoint("CENTER", namePlate, "CENTER", 0, 42)
+		marker.label:SetText(tostring(count))
+		marker:Show()
+	end
+	-- Focus frame
+	if _G.ExFocusCastAnchor and _G.ExFocusCastAnchor:IsShown() then
+		local fm = EnsureFocusMarker()
+		fm:ClearAllPoints()
+		fm:SetPoint("RIGHT", _G.ExFocusCastAnchor, "LEFT", -6, 0)
+		fm:SetScale(2)
+		fm.label:SetText(tostring(count))
+		fm:Show()
+	elseif FocusFrameSpellBar then
+		local fm = EnsureFocusMarker()
+		fm:ClearAllPoints()
+		fm:SetPoint("LEFT", FocusFrameSpellBar, "LEFT", -56, 0)
+		fm:SetScale(1)
+		fm.label:SetText(tostring(count))
+		fm:Show()
+	end
 end
 
 local function HideMarker()
 	if markerFrame then markerFrame:Hide() end
+	if focusMarkerFrame then focusMarkerFrame:Hide() end
 end
 
 local function IsBossToken(unit)
@@ -187,15 +227,11 @@ end
 local function CounterOnEvent(_, event, unit)
 	if not counterActive then return end
 	if issecretvalue(unit) then return end
-
 	if event == "UNIT_SPELLCAST_START" then
 		if not IsBossToken(unit) then return end
-		addon:Dbg("MF", ("START %s hasF=%s init=%s fc=%d"):format(unit, tostring(hasFocus), tostring(isInitialized), focusCount))
+		addon:Dbg("MF", ("START %s hasF=%s fc=%d"):format(unit, tostring(hasFocus), focusCount))
 		if not hasFocus then
-			if not isInitialized then
-				InitTracking()
-				if GetUnitName("focus", true) then TrySetFocus() end
-			end
+			if not isInitialized then InitTracking(); TrySetFocus() end
 			if not hasFocus then return end
 		end
 		if UnitIsUnit(unit, "focus") then
@@ -212,23 +248,17 @@ local function CounterOnEvent(_, event, unit)
 		if resetTimer then resetTimer:Cancel() end
 		StartResetTimer()
 	elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" then
-		if hasFocus and UnitIsUnit(unit, "focus") then
-			HideMarker()
-		end
+		if hasFocus and UnitIsUnit(unit, "focus") then HideMarker() end
 	elseif event == "PLAYER_FOCUS_CHANGED" then
 		if not GetUnitName("focus", true) then
 			HideMarker(); hasFocus = false; return
 		end
-		if hasFocus then
-			HideMarker(); hasFocus = false; focusCount = 0
-		end
+		if hasFocus then HideMarker(); hasFocus = false; focusCount = 0 end
 		TrySetFocus()
 	elseif event == "UNIT_DIED" then
 		addon:Dbg("MF", ("DIED: %s hasF=%s"):format(tostring(unit), tostring(hasFocus)))
 		if not UnitExists("boss2") then
-			HideMarker()
-			CounterFullReset()
-			return
+			HideMarker(); CounterFullReset(); return
 		end
 		if IsBossToken(unit) then trackCounts[unit] = 0 end
 		if hasFocus and UnitIsUnit(unit, "focus") then
@@ -294,9 +324,7 @@ end
 function Boss:OnMythicEncounterEnd()
 	self.isActive = false
 	RestoreCVars()
-	if counterActive then
-		CounterStop()
-	end
+	if counterActive then CounterStop() end
 end
 
 addon:RegisterModule("Raids.MarchOfQuelDanas.MidnightFalls", Boss)
