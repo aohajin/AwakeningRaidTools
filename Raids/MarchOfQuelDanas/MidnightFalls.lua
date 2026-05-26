@@ -220,9 +220,8 @@ end
 
 local function CounterOnEvent(_, event, unit)
 	if not counterActive then return end
-	if issecretvalue(unit) then return end
 	if event == "UNIT_SPELLCAST_START" then
-		if not IsBossToken(unit) then return end
+		if not issecretvalue(unit) and not IsBossToken(unit) then return end
 		addon:Dbg("MF", ("START %s hasF=%s fc=%d"):format(unit, tostring(hasFocus), focusCount))
 		if not hasFocus then
 			if not isInitialized then InitTracking(); TrySetFocus() end
@@ -233,10 +232,12 @@ local function CounterOnEvent(_, event, unit)
 
 		end
 	elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
-		if not IsBossToken(unit) then return end
+		if not issecretvalue(unit) and not IsBossToken(unit) then return end
 		addon:Dbg("MF", ("INTR %s hasF=%s fc=%d"):format(unit, tostring(hasFocus), focusCount))
 		if not hasFocus then
-			trackCounts[unit] = (trackCounts[unit] or 0) + 1
+			if not issecretvalue(unit) then
+				trackCounts[unit] = (trackCounts[unit] or 0) + 1
+			end
 		elseif UnitIsUnit(unit, "focus") then
 			focusCount = focusCount + 1
 		end
@@ -263,7 +264,7 @@ local function CounterOnEvent(_, event, unit)
 		if not UnitExists("boss2") then
 			CounterFullReset(); return
 		end
-		if IsBossToken(unit) then trackCounts[unit] = 0 end
+		if not issecretvalue(unit) and IsBossToken(unit) then trackCounts[unit] = 0 end
 		if hasFocus and UnitIsUnit(unit, "focus") then
 			CounterFullReset(); hasFocus = false; focusCount = 0
 		end
