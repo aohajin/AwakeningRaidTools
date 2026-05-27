@@ -20,6 +20,7 @@ local DEFAULT_CONFIG = {
 	font = "Friz Quadrata TT",
 	fontsize = 18,
 	strata = "MEDIUM",
+	counterScale = 1,
 }
 
 local function GetConfig()
@@ -59,7 +60,7 @@ local function ApplyConfig()
 		local counter = addon.modules["Common.Counter"]
 		if counter then
 			local cm = counter:GetMarker("center")
-			if cm then cm:SetFrameStrata(s) end
+			if cm then cm:SetFrameStrata(s); cm:SetScale(cfg.counterScale or cfg.scale or 1) end
 		end
 	end
 end
@@ -85,7 +86,7 @@ local function ShowEditPreview()
 		local cfg = GetConfig()
 		counter:GetMarker("center"):SetFrameStrata(cfg.strata or "MEDIUM")
 		counter:SetAnchor("center", bar.Icon, "RIGHT", "LEFT", -8, 0)
-		counter:Show("center", "1", 1.5)
+		counter:Show("center", "1", GetConfig().scale or 1)
 	end
 end
 
@@ -96,6 +97,7 @@ local function Create()
 	bar:SetSize(350, 32)
 	bar:SetFrameStrata("MEDIUM")
 	bar:SetClampedToScreen(true)
+	bar.editModeName = "Art Lura cast bar"
 
 	local bg = bar:CreateTexture(nil, "BACKGROUND")
 	bg:SetAllPoints()
@@ -140,33 +142,35 @@ local function Create()
 	bar.Cooldown:SetDrawBling(false)
 	bar.Cooldown:SetHideCountdownNumbers(true)
 
+		bar:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
+
 	LEM:AddFrame(bar, OnPositionChanged, {
-		point = "CENTER", x = 0, y = 200,
+		baseFrameName = "Art Lura cast bar",
+		name = "Art Lura cast bar", point = "CENTER", x = 0, y = 200,
 		enableOverlayToggle = true,
 		showReset = true,
 	})
+	-- LEM doesn't set system.name; Blizzard EditMode needs it for tooltip
+	for _, child in ipairs({bar:GetChildren()}) do
+		if child.system then
+			child.system.name = child.systemBaseName or "Art Lura cast bar"
+			break
+		end
+	end
 
 	local buildStrataValues = function()
 		local t = {}
-		for _, s in ipairs(VALID_STRATA) do
-			table.insert(t, { text = s, value = s })
-		end
+		for _, s in ipairs(VALID_STRATA) do table.insert(t, { text = s, value = s }) end
 		return t
 	end
-
 	local buildTexValues = function()
 		local t = {}
-		for _, n in ipairs(LSM:List("statusbar")) do
-			table.insert(t, { text = n, value = n })
-		end
+		for _, n in ipairs(LSM:List("statusbar")) do table.insert(t, { text = n, value = n }) end
 		return t
 	end
-
 	local buildFontValues = function()
 		local t = {}
-		for _, n in ipairs(LSM:List("font")) do
-			table.insert(t, { text = n, value = n })
-		end
+		for _, n in ipairs(LSM:List("font")) do table.insert(t, { text = n, value = n }) end
 		return t
 	end
 
@@ -191,6 +195,10 @@ local function Create()
 			get = function() return GetConfig().strata or "MEDIUM" end,
 			set = function(_, v) SaveConfig("strata", v); ApplyConfig() end,
 			values = buildStrataValues() },
+		{ name = "Counter Scale", kind = LEM.SettingType.Slider, default = 1,
+			minValue = 0.3, maxValue = 5, valueStep = 0.1,
+			get = function() return GetConfig().counterScale or 1 end,
+			set = function(_, v) SaveConfig("counterScale", v); ApplyConfig() end },
 	})
 
 	LEM:RegisterCallback("enter", function()

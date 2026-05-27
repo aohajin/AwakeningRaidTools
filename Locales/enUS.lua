@@ -50,8 +50,8 @@ addon.locales.enUS = addon.locales.enUS or {
     OPTIONS_FIC_FOCUS_FRAME_DESC =
     "Display the counter on the system focus frame spell bar (also supports ExwindTools focus cast bar).",
     OPTIONS_FIC_EDIT_MODE = "Configure in Edit Mode",
-    OPTIONS_FIC_CENTER_SCREEN = "Show in center of screen",
-    OPTIONS_FIC_CENTER_SCREEN_DESC = "Display a large interrupt counter in the upper center of the screen.",
+    OPTIONS_FIC_CENTER_SCREEN = "Show on ART focus cast bar",
+    OPTIONS_FIC_CENTER_SCREEN_DESC = "Display a custom focus cast bar with interrupt counter..",
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY = "Disable particle effects (P1-P2)",
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY_DESC =
     "Set particle density to minimum during phases 1-2 to improve frame rate. Restores normal settings in phase 3.",

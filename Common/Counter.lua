@@ -31,7 +31,7 @@ end
 function Counter:Show(key, num, scale)
 	local m = Ensure(key)
 	m.label:SetText(tostring(num))
-	if scale then m:SetScale(scale) else m:SetScale(1) end
+	if scale then m:SetScale(scale) end
 	m:Show()
 end
 

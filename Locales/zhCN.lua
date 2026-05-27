@@ -49,8 +49,8 @@ addon.locales.zhCN = addon.locales.zhCN or {
     OPTIONS_CENTER_CAST_BAR = "显示屏幕中央焦点施法条",
     OPTIONS_CENTER_CAST_BAR_DESC = "在屏幕中央显示自定义焦点施法条，包含打断计数。",
 
-    OPTIONS_FIC_CENTER_SCREEN = "在屏幕中间显示",
-    OPTIONS_FIC_CENTER_SCREEN_DESC = "在屏幕中上方显示一个较大的独立打断计数。",
+    OPTIONS_FIC_CENTER_SCREEN = "显示在ART独立焦点施法条",
+    OPTIONS_FIC_CENTER_SCREEN_DESC = "显示自定义焦点施法条，包含打断计数。",
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY = "关闭粒子效果（P1-P2）",
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY_DESC = "在P1-P2阶段将粒子密度降至最低以提高帧数，P3自动恢复。",
 }

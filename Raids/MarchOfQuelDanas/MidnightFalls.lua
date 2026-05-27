@@ -203,7 +203,7 @@ local function DisplayCounter(count)
 				counter:SetAnchor("center", icon, "RIGHT", "LEFT", -8, 0)
 			end
 		end
-		counter:Show("center", count, 1.5)
+		counter:Show("center", count)
 	end
 end
 
