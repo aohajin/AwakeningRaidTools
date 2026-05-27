@@ -9,7 +9,7 @@ local function Ensure(key)
 	if markers[key] then return markers[key] end
 	local holder = CreateFrame("Frame", nil, UIParent)
 	holder:SetSize(52, 52)
-	holder:SetFrameStrata("TOOLTIP")
+	holder:SetFrameStrata("MEDIUM")
 	local bg = holder:CreateTexture(nil, "BACKGROUND")
 	bg:SetAllPoints()
 	bg:SetColorTexture(0.1, 0.75, 0.2, 0.95)
@@ -42,6 +42,10 @@ function Counter:Hide(key)
 	else
 		for _, m in pairs(markers) do m:Hide() end
 	end
+end
+
+function Counter:GetMarker(key)
+	return markers[key] or Ensure(key)
 end
 
 function Counter:OnInitialize() end

@@ -267,7 +267,7 @@ panel:SetScript("OnShow", function(self)
 						function(checked)
 							SetFeatureEnabled(boss.encounterId, featureName, checked)
 							for _, sub in ipairs(subWidgets) do
-								sub:SetShown(checked)
+								if sub._depKey then local dc = GetSubFeatureEnabled(boss.encounterId, featureName, sub._depKey, false); sub:SetShown(checked and dc) else sub:SetShown(checked) end
 							end
 						end, tooltip)
 					currentY = currentY - CHECKBOX_SPACING
@@ -275,17 +275,35 @@ panel:SetScript("OnShow", function(self)
 					-- Sub-features
 					if featureDef.subFeatures then
 						local parentChecked = GetFeatureEnabled(boss.encounterId, featureName, featureDef.default)
-						for subKey, subDef in pairs(featureDef.subFeatures) do
-							local subLabel = L[subDef.labelKey] or subDef.labelKey or subKey
-							local subTooltip = subDef.descKey and L[subDef.descKey] or nil
-							local subCB = CreateCheckbox(subLabel, currentY, INDENT_3,
-								GetSubFeatureEnabled(boss.encounterId, featureName, subKey, subDef.default),
-								function(checked)
-									SetSubFeatureEnabled(boss.encounterId, featureName, subKey, checked)
-								end, subTooltip)
-							subCB:SetShown(parentChecked)
-							table.insert(subWidgets, subCB)
-							currentY = currentY - CHECKBOX_SPACING
+						for _, subDef in ipairs(featureDef.subFeatures) do
+								local subKey = subDef.key
+							if subDef.type == "button" then
+								local btn = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
+								btn:SetPoint("TOPLEFT", INDENT_3, currentY + 2)
+								btn:SetText(L[subDef.labelKey] or subKey)
+								btn:SetWidth(220)
+								btn:SetScript("OnClick", subDef.onClick)
+								btn._depKey = subDef.dependsOn
+local depKey = subDef.dependsOn; local depChecked = depKey and GetSubFeatureEnabled(boss.encounterId, featureName, depKey, false); btn:SetShown(depKey and parentChecked and depChecked or parentChecked)
+								table.insert(subWidgets, btn)
+								currentY = currentY - CHECKBOX_SPACING
+							else
+								local subLabel = L[subDef.labelKey] or subDef.labelKey or subKey
+								local subTooltip = subDef.descKey and L[subDef.descKey] or nil
+								local subCB = CreateCheckbox(subLabel, currentY, INDENT_3,
+									GetSubFeatureEnabled(boss.encounterId, featureName, subKey, subDef.default),
+									function(checked)
+										SetSubFeatureEnabled(boss.encounterId, featureName, subKey, checked)
+										for _, w in ipairs(subWidgets) do
+											if w._depKey == subKey then
+												w:SetShown(checked)
+											end
+										end
+									end, subTooltip)
+								subCB:SetShown(parentChecked)
+								table.insert(subWidgets, subCB)
+								currentY = currentY - CHECKBOX_SPACING
+							end
 						end
 					end
 				end

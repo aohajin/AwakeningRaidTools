@@ -3,24 +3,110 @@ local _, addon = ...
 local CastBar = {}
 CastBar.name = "CastBar"
 
+local LEM = LibStub("LibEQOLEditMode-1.0")
+local LSM = LibStub("LibSharedMedia-3.0")
+
 local bar = nil
+local isEditMode = false
+
+local VALID_STRATA = {"BACKGROUND", "LOW", "MEDIUM", "HIGH", "DIALOG"}
+
+local DEFAULT_CONFIG = {
+	point = "CENTER",
+	x = 0,
+	y = 200,
+	scale = 1,
+	texture = "Blizzard",
+	font = "Friz Quadrata TT",
+	fontsize = 18,
+	strata = "MEDIUM",
+}
+
+local function GetConfig()
+	local db = AwakeningRaidToolsDB
+	if db and db.encounters and db.encounters[3183] and db.encounters[3183].castBar then
+		return db.encounters[3183].castBar
+	end
+	return DEFAULT_CONFIG
+end
+
+local function SaveConfig(key, value)
+	local db = AwakeningRaidToolsDB
+	if not db.encounters then db.encounters = {} end
+	if not db.encounters[3183] then db.encounters[3183] = {} end
+	if not db.encounters[3183].castBar then db.encounters[3183].castBar = {} end
+	db.encounters[3183].castBar[key] = value
+end
+
+local function ApplyConfig()
+	local cfg = GetConfig()
+	if bar then
+		local s = cfg.strata or "MEDIUM"
+		bar:SetFrameStrata(s)
+		bar:ClearAllPoints()
+		bar:SetPoint(cfg.point or "CENTER", UIParent, cfg.point or "CENTER", cfg.x or 0, cfg.y or 200)
+		bar:SetScale(cfg.scale or 1)
+
+		local tex = LSM:Fetch("statusbar", cfg.texture or "Blizzard")
+		if tex then bar.statusBar:SetStatusBarTexture(tex) end
+
+		local font = LSM:Fetch("font", cfg.font or "Friz Quadrata TT")
+		if font then
+			local fs = cfg.fontsize or 18
+			bar.spellName:SetFont(font, fs, "OUTLINE")
+			bar.targetName:SetFont(font, math.max(10, fs - 2), "OUTLINE")
+		end
+		local counter = addon.modules["Common.Counter"]
+		if counter then
+			local cm = counter:GetMarker("center")
+			if cm then cm:SetFrameStrata(s) end
+		end
+	end
+end
+
+local function OnPositionChanged(frame, layoutName, point, x, y)
+	SaveConfig("point", point)
+	SaveConfig("x", x)
+	SaveConfig("y", y)
+end
+
+local function ShowEditPreview()
+	if not isEditMode then return end
+	bar.Icon:SetTexture(136197)
+	bar.Icon:Show()
+	bar.spellName:SetText("Sample Spell")
+	bar.targetName:SetText("Target")
+	bar.targetName:Show()
+	bar.statusBar:SetValue(0.55)
+	bar:Show()
+
+	local counter = addon.modules["Common.Counter"]
+	if counter then
+		local cfg = GetConfig()
+		counter:GetMarker("center"):SetFrameStrata(cfg.strata or "MEDIUM")
+		counter:SetAnchor("center", bar.Icon, "RIGHT", "LEFT", -8, 0)
+		counter:Show("center", "1", 1.5)
+	end
+end
 
 local function Create()
 	if bar then return bar end
-	bar = CreateFrame("StatusBar", nil, UIParent)
+
+	bar = CreateFrame("Frame", nil, UIParent)
 	bar:SetSize(350, 32)
-	bar:SetPoint("CENTER", UIParent, "CENTER", 0, 200)
-	bar:SetFrameStrata("TOOLTIP")
+	bar:SetFrameStrata("MEDIUM")
 	bar:SetClampedToScreen(true)
-	bar:SetMinMaxValues(0, 1)
-	bar:SetValue(1)
 
 	local bg = bar:CreateTexture(nil, "BACKGROUND")
 	bg:SetAllPoints()
 	bg:SetColorTexture(0, 0, 0, 0.5)
 
-	bar:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
-	bar:SetStatusBarColor(0.29, 0.91, 1.0, 1)
+	bar.statusBar = CreateFrame("StatusBar", nil, bar)
+	bar.statusBar:SetAllPoints()
+	bar.statusBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+	bar.statusBar:SetStatusBarColor(0.29, 0.91, 1.0, 1)
+	bar.statusBar:SetMinMaxValues(0, 1)
+	bar.statusBar:SetValue(1)
 
 	bar.spark = bar:CreateTexture(nil, "OVERLAY")
 	bar.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
@@ -32,21 +118,19 @@ local function Create()
 	bar.Icon:SetPoint("RIGHT", bar, "LEFT", -8, 0)
 	bar.Icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 
-	bar.Text = bar:CreateFontString(nil, "OVERLAY")
-	bar.Text:SetPoint("LEFT", bar, "LEFT", 10, 0)
-	bar.Text:SetDrawLayer("OVERLAY", 7)
-	bar.Text:SetFont(STANDARD_TEXT_FONT, 18, "OUTLINE")
-	bar.Text:SetTextColor(1, 1, 1, 1)
-	bar.Text:SetJustifyH("LEFT")
-	bar.Text:SetWidth(200)
+	local textOverlay = CreateFrame("Frame", nil, bar)
+	textOverlay:SetAllPoints()
+	textOverlay:SetFrameLevel(bar.statusBar:GetFrameLevel() + 10)
 
-	bar.TargetNameText = bar:CreateFontString(nil, "OVERLAY")
-	bar.TargetNameText:SetPoint("RIGHT", bar, "RIGHT", -10, 0)
-	bar.TargetNameText:SetDrawLayer("OVERLAY", 7)
-	bar.TargetNameText:SetFont(STANDARD_TEXT_FONT, 16, "OUTLINE")
-	bar.TargetNameText:SetTextColor(1, 1, 1, 1)
-	bar.TargetNameText:SetJustifyH("RIGHT")
-	bar.TargetNameText:SetWidth(150)
+	bar.spellName = textOverlay:CreateFontString(nil, "OVERLAY")
+	bar.spellName:SetPoint("LEFT", textOverlay, "LEFT", 10, 0)
+	bar.spellName:SetJustifyH("LEFT")
+	bar.spellName:SetWidth(200)
+
+	bar.targetName = textOverlay:CreateFontString(nil, "OVERLAY")
+	bar.targetName:SetPoint("RIGHT", textOverlay, "RIGHT", -10, 0)
+	bar.targetName:SetJustifyH("RIGHT")
+	bar.targetName:SetWidth(150)
 
 	bar.Cooldown = CreateFrame("Cooldown", nil, bar, "CooldownFrameTemplate")
 	bar.Cooldown:SetAllPoints()
@@ -56,21 +140,88 @@ local function Create()
 	bar.Cooldown:SetDrawBling(false)
 	bar.Cooldown:SetHideCountdownNumbers(true)
 
+	LEM:AddFrame(bar, OnPositionChanged, {
+		point = "CENTER", x = 0, y = 200,
+		enableOverlayToggle = true,
+		showReset = true,
+	})
+
+	local buildStrataValues = function()
+		local t = {}
+		for _, s in ipairs(VALID_STRATA) do
+			table.insert(t, { text = s, value = s })
+		end
+		return t
+	end
+
+	local buildTexValues = function()
+		local t = {}
+		for _, n in ipairs(LSM:List("statusbar")) do
+			table.insert(t, { text = n, value = n })
+		end
+		return t
+	end
+
+	local buildFontValues = function()
+		local t = {}
+		for _, n in ipairs(LSM:List("font")) do
+			table.insert(t, { text = n, value = n })
+		end
+		return t
+	end
+
+	LEM:AddFrameSettings(bar, {
+		{ name = "Scale", kind = LEM.SettingType.Slider, default = 1,
+			minValue = 0.3, maxValue = 3, valueStep = 0.1,
+			get = function() return GetConfig().scale or 1 end,
+			set = function(_, v) SaveConfig("scale", v); ApplyConfig() end },
+		{ name = "Texture", kind = LEM.SettingType.Dropdown, default = "Blizzard",
+			get = function() return GetConfig().texture or "Blizzard" end,
+			set = function(_, v) SaveConfig("texture", v); ApplyConfig() end,
+			values = buildTexValues() },
+		{ name = "Font", kind = LEM.SettingType.Dropdown, default = "Friz Quadrata TT",
+			get = function() return GetConfig().font or "Friz Quadrata TT" end,
+			set = function(_, v) SaveConfig("font", v); ApplyConfig() end,
+			values = buildFontValues() },
+		{ name = "Font Size", kind = LEM.SettingType.Slider, default = 18,
+			minValue = 10, maxValue = 36, valueStep = 1,
+			get = function() return GetConfig().fontsize or 18 end,
+			set = function(_, v) SaveConfig("fontsize", v); ApplyConfig() end },
+		{ name = "Strata", kind = LEM.SettingType.Dropdown, default = "MEDIUM",
+			get = function() return GetConfig().strata or "MEDIUM" end,
+			set = function(_, v) SaveConfig("strata", v); ApplyConfig() end,
+			values = buildStrataValues() },
+	})
+
+	LEM:RegisterCallback("enter", function()
+		isEditMode = true
+		ShowEditPreview()
+	end)
+	LEM:RegisterCallback("exit", function()
+		isEditMode = false
+		bar.Icon:Hide()
+		bar.spellName:SetText("")
+		bar.targetName:Hide()
+		bar.statusBar:SetValue(1)
+		bar:Hide()
+		local counter = addon.modules["Common.Counter"]
+		if counter then counter:Hide("center") end
+	end)
+
+	ApplyConfig()
 	bar:Hide()
 	return bar
 end
 
 function CastBar:SetAnchor(frame, point, relPoint, x, y)
 	Create()
-	bar:ClearAllPoints()
-	bar:SetPoint(point or "CENTER", frame or UIParent, relPoint or "CENTER", x or 0, y or 0)
 end
 
 function CastBar:Show(unit)
 	if not unit or not UnitExists(unit) then self:Hide(); return end
 	Create()
+	if isEditMode then return end
 
-	-- Same pattern as ExwindTools GetFocusCastInfo
 	local objCast = UnitCastingDuration(unit)
 	local objChannel = UnitChannelDuration(unit)
 	local activeObj = objCast or objChannel
@@ -78,32 +229,32 @@ function CastBar:Show(unit)
 	if not activeObj then self:Hide(); return end
 
 	local name, texture
-	if isChannel then
-		name, _, texture = UnitChannelInfo(unit)
-	else
-		name, _, texture = UnitCastingInfo(unit)
-	end
-	if not name then self:Hide(); return end
+	if isChannel then name, _, texture = UnitChannelInfo(unit)
+	else name, _, texture = UnitCastingInfo(unit) end
 
-	-- Same pattern as ExwindTools ApplyFocusCastToBar: direct set, no secret checks
 	bar.Icon:SetTexture(texture)
-	bar.Text:SetText(name)
+	bar.Icon:Show()
+	bar.spellName:SetText(name or "")
 
 	local target = UnitSpellTargetName(unit)
 	if target then
-		bar.TargetNameText:SetText(target)
+		bar.targetName:SetText(target)
 		local tc = UnitSpellTargetClass(unit)
 		local color = C_ClassColor.GetClassColor(tc)
-		if color then bar.TargetNameText:SetTextColor(color.r, color.g, color.b, 1)
-		else bar.TargetNameText:SetTextColor(1, 1, 1, 1) end
-		bar.TargetNameText:Show()
+		if color then bar.targetName:SetTextColor(color.r, color.g, color.b, 1)
+		else bar.targetName:SetTextColor(1, 1, 1, 1) end
+		bar.targetName:Show()
 	else
-		bar.TargetNameText:Hide()
+		bar.targetName:Hide()
 	end
 
-	bar:SetTimerDuration(activeObj, Enum.StatusBarInterpolation.None, isChannel and 1 or 0)
+	bar.statusBar:SetTimerDuration(activeObj, Enum.StatusBarInterpolation.None, isChannel and 1 or 0)
 	bar.Cooldown:SetCooldownFromDurationObject(activeObj, true)
 	bar:Show()
+end
+
+function CastBar:Hide()
+	if bar and not isEditMode then bar:Hide() end
 end
 
 function CastBar:GetIconFrame()
@@ -111,10 +262,8 @@ function CastBar:GetIconFrame()
 	return bar.Icon
 end
 
-function CastBar:Hide()
-	if bar then bar:Hide() end
+function CastBar:OnInitialize()
+	Create()
 end
-
-function CastBar:OnInitialize() end
 
 addon:RegisterModule("Common.CastBar", CastBar)

@@ -44,11 +44,12 @@ addon.locales.zhTW = addon.locales.zhTW or {
     OPTIONS_FOCUS_INTERRUPT_COUNTER_DESC = "在戰鬥中於焦點目標的姓名板上顯示當前打斷計數。",
     OPTIONS_FIC_NAMEPLATE = "在焦點姓名版上顯示",
     OPTIONS_FIC_NAMEPLATE_DESC = "在焦點目標的姓名版上顯示打斷計數。",
-    OPTIONS_FIC_FOCUS_FRAME = "顯示在系統焦點框架的施法條（支援exwindtools）。",
+    OPTIONS_FIC_FOCUS_FRAME = "顯示在系統焦點框架的施法條（支援exwindtools）",
     OPTIONS_FIC_FOCUS_FRAME_DESC = "在系統焦點框架的施法條上顯示打斷計數（也支援ExwindTools的焦點施法條）。",
     OPTIONS_CENTER_CAST_BAR = "顯示螢幕中央焦點施法條",
     OPTIONS_CENTER_CAST_BAR_DESC = "在螢幕中央顯示自定義焦點施法條，包含打斷計數。",
 
+    OPTIONS_FIC_EDIT_MODE = "Configure in Edit Mode",
     OPTIONS_FIC_CENTER_SCREEN = "在螢幕中間顯示",
     OPTIONS_FIC_CENTER_SCREEN_DESC = "在螢幕中上方顯示一個較大的獨立打斷計數。",
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY = "關閉粒子效果（P1-P2）",

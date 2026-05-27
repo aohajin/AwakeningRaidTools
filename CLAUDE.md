@@ -41,12 +41,29 @@ AwakeningRaidToolsDB = {
 
 ## WoW Secret-Value Safety (Required)
 
-- Before using any WoW API in new logic, verify whether its return values can be secret in combat/instance contexts.
-- If a return value can be secret, never use it in: boolean tests, comparisons, arithmetic, table indexing, or string conversion.
-- Prefer secret-safe API helpers/patterns when available.
-- Do not add filtering logic that depends on combat identity APIs (`UnitGUID`, `UnitName`, `UnitIsUnit`, boss-token lookups for nameplates) unless secret behavior is verified first.
-- For encounter targeting, prefer encounter-level module enable/disable and per-boss module routing instead of runtime unit-identity matching.
-- Keep `Common/NameplateCastMarker.lua` aligned with the known-good Git version when debugging secret-value regressions.
+During RWF/competitive periods, some API return values become "secret" — opaque tokens that cannot be inspected or manipulated in Lua. Use `issecretvalue(v)` to test, `canaccessvalue(v)` to check if you have permission.
+
+### Allowed on secret values (tainted code)
+- **Store** in variables, upvalues, table values
+- **Pass** to Lua functions and C functions that accept secrets
+- **Boolean test** on non-boolean types (`if v then`, `v or fallback`) — since the type itself is not secret, nil is falsy and everything else (string/number/table) is truthy
+- **Concatenation** on string/number secrets (`..`, `string.format`, `string.concat`)
+- **Pass to C widget APIs** that accept secrets (`SetText`, `SetTexture`, `SetValue`, `SetTimerDuration`, `SetCooldownFromDurationObject`, etc.)
+- `type(secret)` returns the real type (`"string"`, `"number"`, etc.)
+
+### Prohibited on secret values
+- **Comparisons** (`==`, `~=`, `<`, `>`, `<=`, `>=`)
+- **Arithmetic** (`+`, `-`, `*`, `/`)
+- **Table key** indexing with secret value (`map[secret]`)
+- **Indexed access/assignment** on secret table values (`secret["foo"]`)
+- **Length operator** (`#secret`)
+- **Calling** a secret value as-if it were a function
+- **String conversion** via `tostring()`
+
+### `UnitIsUnit` specific rules
+- Permitted if either unit is: `"player"`, `"pet"`, `"vehicle"`, `"mouseover"`, `"target"`, `"softenemy"`, `"softfriend"`, `"softinteract"`, `"focus"`, `"none"`, `"npc"`, `"questnpc"`
+- Permitted if either unit is a party/raid token and the other is NOT a compound token (`"boss1target"`), nameplate token, or `"targettarget"`/`"focustarget"`
+- Secret values are NOT accepted as arguments — add `not issecretvalue(unit)` guard before calling
 
 ## PhaseTracker
 

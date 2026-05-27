@@ -4,7 +4,6 @@ local Boss = {
 	name = "MidnightFalls",
 	encounterId = 3183,
 	mythicOnly = true,
-	-- TODO: remove after testing
 	testEncounterIds = {2590},
 	features = {
 		particleDensity = {
@@ -19,24 +18,15 @@ local Boss = {
 			labelKey = "OPTIONS_FOCUS_INTERRUPT_COUNTER",
 			descKey  = "OPTIONS_FOCUS_INTERRUPT_COUNTER_DESC",
 			subFeatures = {
-				nameplate = {
-					type = "toggle",
-					default = true,
-					labelKey = "OPTIONS_FIC_NAMEPLATE",
-					descKey  = "OPTIONS_FIC_NAMEPLATE_DESC",
-				},
-				focusFrame = {
-					type = "toggle",
-					default = false,
-					labelKey = "OPTIONS_FIC_FOCUS_FRAME",
-					descKey  = "OPTIONS_FIC_FOCUS_FRAME_DESC",
-				},
-				centerScreen = {
-					type = "toggle",
-					default = false,
-					labelKey = "OPTIONS_FIC_CENTER_SCREEN",
-					descKey  = "OPTIONS_FIC_CENTER_SCREEN_DESC",
-				},
+				{ key = "nameplate", type = "toggle", default = true,
+					labelKey = "OPTIONS_FIC_NAMEPLATE", descKey = "OPTIONS_FIC_NAMEPLATE_DESC" },
+				{ key = "focusFrame", type = "toggle", default = false,
+					labelKey = "OPTIONS_FIC_FOCUS_FRAME", descKey = "OPTIONS_FIC_FOCUS_FRAME_DESC" },
+				{ key = "centerScreen", type = "toggle", default = false,
+					labelKey = "OPTIONS_FIC_CENTER_SCREEN", descKey = "OPTIONS_FIC_CENTER_SCREEN_DESC" },
+				{ key = "editMode", type = "button", dependsOn = "centerScreen",
+					labelKey = "OPTIONS_FIC_EDIT_MODE",
+					onClick = function() if EditModeManagerFrame then ShowUIPanel(EditModeManagerFrame) end end },
 			},
 		},
 	},
@@ -114,7 +104,6 @@ local counterActive = false
 local resetTimer = nil
 local counterEventFrame = nil
 
--- Layer 1: basic helpers (no local deps)
 local function IsBossToken(unit)
 	for _, token in ipairs(BOSS_TOKENS) do
 		if unit == token then return true end
@@ -129,7 +118,6 @@ local function CounterReset()
 	if resetTimer then resetTimer:Cancel(); resetTimer = nil end
 end
 
--- Layer 2: functions that depend on Layer 1
 local function CounterFullReset()
 	CounterReset()
 	hasFocus = false
@@ -185,14 +173,12 @@ local function TrySetFocus()
 	return true
 end
 
--- Layer 3: Display & event handler (depends on Layers 1-2 + modules)
 local function DisplayCounter(count)
 	local counter = addon.modules["Common.Counter"]
 	if not counter then return end
 
 	if IsSubFeatureEnabled("focusInterruptCounter", "nameplate", true) then
 		local np = C_NamePlate.GetNamePlateForUnit("focus")
-		addon:Dbg("MF", ("np=%s"):format(tostring(np)))
 		if np then
 			counter:SetAnchor("np", np, "CENTER", "CENTER", 0, 42)
 			counter:Show("np", count)
@@ -224,7 +210,7 @@ end
 local function CounterOnEvent(_, event, unit)
 	if not counterActive then return end
 	if event == "UNIT_SPELLCAST_START" then
-		if issecretvalue(unit) or not IsBossToken(unit) then return end
+		if not issecretvalue(unit) and not IsBossToken(unit) then return end
 		addon:Dbg("MF", ("START %s hasF=%s fc=%d"):format(unit, tostring(hasFocus), focusCount))
 		if not hasFocus then
 			if not isInitialized then InitTracking(); TrySetFocus() end
@@ -232,22 +218,21 @@ local function CounterOnEvent(_, event, unit)
 		end
 		if UnitIsUnit(unit, "focus") then
 			DisplayCounter(focusCount + 1)
-
 		end
 	elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
-		if issecretvalue(unit) or not IsBossToken(unit) then return end
+		if not issecretvalue(unit) and not IsBossToken(unit) then return end
 		addon:Dbg("MF", ("INTR %s hasF=%s fc=%d"):format(unit, tostring(hasFocus), focusCount))
 		if not hasFocus then
 			if not issecretvalue(unit) then
 				trackCounts[unit] = (trackCounts[unit] or 0) + 1
 			end
-		elseif not issecretvalue(unit) and UnitIsUnit(unit, "focus") then
+		elseif UnitIsUnit(unit, "focus") then
 			focusCount = focusCount + 1
 		end
 		if resetTimer then resetTimer:Cancel() end
 		StartResetTimer()
 	elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" then
-		if hasFocus and not issecretvalue(unit) and UnitIsUnit(unit, "focus") then
+		if hasFocus and UnitIsUnit(unit, "focus") then
 			local counter = addon.modules["Common.Counter"]
 			if counter then counter:Hide() end
 			local castBar = addon.modules["Common.CastBar"]
@@ -268,13 +253,12 @@ local function CounterOnEvent(_, event, unit)
 			CounterFullReset(); return
 		end
 		if not issecretvalue(unit) and IsBossToken(unit) then trackCounts[unit] = 0 end
-		if hasFocus and not issecretvalue(unit) and UnitIsUnit(unit, "focus") then
+		if hasFocus and UnitIsUnit(unit, "focus") then
 			CounterFullReset(); hasFocus = false; focusCount = 0
 		end
 	end
 end
 
--- Layer 4: module lifecycle (depends on all above)
 local function CounterStart()
 	addon:Dbg("MF", "counter: start")
 	if not counterEventFrame then
@@ -288,6 +272,7 @@ local function CounterStart()
 	counterEventFrame:RegisterEvent("PLAYER_FOCUS_CHANGED")
 	counterEventFrame:RegisterEvent("UNIT_DIED")
 	CounterFullReset()
+	StartResetTimer()
 	counterActive = true
 end
 
