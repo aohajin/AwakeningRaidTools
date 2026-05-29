@@ -43,27 +43,42 @@ AwakeningRaidToolsDB = {
 
 During RWF/competitive periods, some API return values become "secret" — opaque tokens that cannot be inspected or manipulated in Lua. Use `issecretvalue(v)` to test, `canaccessvalue(v)` to check if you have permission.
 
-### Allowed on secret values (tainted code)
+### General principle
+
+Secret values **can be freely passed** to Blizzard C APIs. The API handles the secret internally. Most APIs will return secret values when given secret input — those results can still be passed to C widget functions (`SetText`, `SetTexture`, `SetTimerDuration`, etc.). A few APIs (notably `UnitIsUnit`) return **non-secret** results even from secret input.
+
+**Rule: when passing a potentially-secret value to an API, consult the API's documentation for its secret-handling contract.** Do NOT blindly guard with `issecretvalue()` — that may silently break functionality during RWF. Each API falls into one of three categories:
+
+1. **Accepts secret, returns non-secret** — e.g. `UnitIsUnit`. Safe to call without guard.
+2. **Accepts secret, returns secret** — e.g. `UnitCastingInfo`, `UnitChannelInfo`. Pass-through is fine; pass results to C widgets.
+3. **Does not accept secret** — rare; check docs. Only then add `issecretvalue` guard.
+
+The only things you **cannot** do are Lua-level operations on the value itself: you can't inspect, compare, or transform it.
+
+### Allowed on secret values
 - **Store** in variables, upvalues, table values
-- **Pass** to Lua functions and C functions that accept secrets
+- **Pass** to any Blizzard C API — safe, API handles it internally
+- **Pass** to Lua functions (as argument, return value)
 - **Boolean test** on non-boolean types (`if v then`, `v or fallback`) — since the type itself is not secret, nil is falsy and everything else (string/number/table) is truthy
-- **Concatenation** on string/number secrets (`..`, `string.format`, `string.concat`)
-- **Pass to C widget APIs** that accept secrets (`SetText`, `SetTexture`, `SetValue`, `SetTimerDuration`, `SetCooldownFromDurationObject`, etc.)
+- **Pass to C widget APIs** (`SetText`, `SetTexture`, `SetValue`, `SetTimerDuration`, `SetCooldownFromDurationObject`, etc.)
 - `type(secret)` returns the real type (`"string"`, `"number"`, etc.)
 
-### Prohibited on secret values
+### Prohibited on secret values (Lua-level operations)
 - **Comparisons** (`==`, `~=`, `<`, `>`, `<=`, `>=`)
 - **Arithmetic** (`+`, `-`, `*`, `/`)
+- **String operations** — `..`, `tostring()`, `string.format`, `string.concat`, `string.gsub`, etc. — anything that needs to inspect the character data
 - **Table key** indexing with secret value (`map[secret]`)
 - **Indexed access/assignment** on secret table values (`secret["foo"]`)
 - **Length operator** (`#secret`)
 - **Calling** a secret value as-if it were a function
-- **String conversion** via `tostring()`
 
 ### `UnitIsUnit` specific rules
+
+`UnitIsUnit` can accept secret values as either or both arguments and will still return a non-secret boolean — no `issecretvalue` guard needed before calling.
+
+Token-side whitelist (these always produce non-secret boolean results):
 - Permitted if either unit is: `"player"`, `"pet"`, `"vehicle"`, `"mouseover"`, `"target"`, `"softenemy"`, `"softfriend"`, `"softinteract"`, `"focus"`, `"none"`, `"npc"`, `"questnpc"`
 - Permitted if either unit is a party/raid token and the other is NOT a compound token (`"boss1target"`), nameplate token, or `"targettarget"`/`"focustarget"`
-- Secret values are NOT accepted as arguments — add `not issecretvalue(unit)` guard before calling
 
 ## PhaseTracker
 
