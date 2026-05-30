@@ -74,9 +74,9 @@ The only things you **cannot** do are Lua-level operations on the value itself: 
 
 ### `UnitIsUnit` specific rules
 
-`UnitIsUnit` can accept secret values as either or both arguments and will still return a non-secret boolean — no `issecretvalue` guard needed before calling.
+`UnitIsUnit` accepts secret values **only from untainted (Blizzard) code**. Addon code is tainted — passing a secret value as either argument will error. Always guard with `not issecretvalue(unit)` before calling `UnitIsUnit` with any event-derived token.
 
-Token-side whitelist (these always produce non-secret boolean results):
+When both units are non-secret, the token whitelist applies:
 - Permitted if either unit is: `"player"`, `"pet"`, `"vehicle"`, `"mouseover"`, `"target"`, `"softenemy"`, `"softfriend"`, `"softinteract"`, `"focus"`, `"none"`, `"npc"`, `"questnpc"`
 - Permitted if either unit is a party/raid token and the other is NOT a compound token (`"boss1target"`), nameplate token, or `"targettarget"`/`"focustarget"`
 

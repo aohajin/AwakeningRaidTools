@@ -1,5 +1,5 @@
 ## Interface: 120001, 120005
-## Version: 0.2.16
+## Version: 0.2.17
 ## Title: 覺 醒 Raid Tools
 ## Author: 怨念物
 ## Notes: Raid utility toolkit for 覺 醒 guild.
