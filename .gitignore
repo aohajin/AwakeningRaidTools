@@ -23,3 +23,5 @@ Temporary Items
 .release/
 .vscode/
 CHANGELOG.md
+.reasonix/
+.claude/
