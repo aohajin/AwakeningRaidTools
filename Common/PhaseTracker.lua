@@ -4,14 +4,20 @@ local PhaseTracker = {}
 PhaseTracker.name = "PhaseTracker"
 
 local PHASE_SWAP_COOLDOWN = 2.0
-local TOLERANCE = 0.2
-
 local configs = {}
 local lastSwapTimestamp = 0
 local stageListenerInitialized = false
 
-local function ApproximatelyEqual(a, b, tolerance)
-	return math.abs(a - b) <= (tolerance or TOLERANCE)
+-- Wall-clock phase tickers, keyed by encounterID
+local tickers = {}
+
+-- Debug flag — set via /artptdebug
+PhaseTracker.debugEnabled = false
+
+local function DbgPrint(...)
+    if PhaseTracker.debugEnabled then
+        print("|cffffff00[PT]|r", ...)
+    end
 end
 
 -- Shared callback dispatcher
@@ -21,6 +27,31 @@ local function FirePhaseCallbacks(cfg, encounterID, newPhase, prevPhase)
 		local ok, err = pcall(cb, encounterID, newPhase, prevPhase)
 		if not ok then
 			print(("ART: PhaseTracker callback error for encounter %d: %s"):format(encounterID, tostring(err)))
+		end
+	end
+end
+
+-- ============================================================
+-- Wall-clock phase detection (like MRT/NSRT)
+-- ============================================================
+
+local function CheckWallClockTransitions(encounterID)
+	local cfg = configs[encounterID]
+	if not cfg or not cfg.transitions then return end
+
+	local now = GetTime()
+	if now - lastSwapTimestamp < PHASE_SWAP_COOLDOWN then return end
+
+	local elapsed = now - cfg.encounterStartTime
+	for _, t in ipairs(cfg.transitions) do
+		if not t.matched and elapsed >= t.atDuration then
+			local prevPhase = cfg.currentPhase
+			t.matched = true
+			lastSwapTimestamp = now
+
+			print(("|cff00ff00ART PT|r: Phase transition! Enc %d, Phase %d -> %d (at %.1fs)"):format(
+				encounterID, prevPhase or 0, t.phase, elapsed))
+			FirePhaseCallbacks(cfg, encounterID, t.phase, prevPhase)
 		end
 	end
 end
@@ -41,7 +72,8 @@ local function HandleStageEvent(encounterID, newStage)
 	if now - lastSwapTimestamp < PHASE_SWAP_COOLDOWN then return end
 	lastSwapTimestamp = now
 
-	addon:Dbg("PhaseTracker", ("stage: %d -> %d (encounter %d)"):format(prevPhase, newStage, encounterID))
+	print(("|cff00ff00ART PT|r: Stage change! Enc %d, Phase %d -> %d"):format(
+		encounterID, prevPhase or 0, newStage))
 	FirePhaseCallbacks(cfg, encounterID, newStage, prevPhase)
 end
 
@@ -54,6 +86,7 @@ local function InitStageListener()
 		local frame = CreateFrame("Frame")
 		BigWigs.RegisterMessage(frame, "BigWigs_SetStage", function(_, module, stage)
 			if not stage or stage < 1 then return end
+			print(("|cff888888ART|r: BigWigs stage=%s"):format(tostring(stage)))
 			for encounterID, cfg in pairs(configs) do
 				if cfg.stages and module and module.IsEncounterID and module:IsEncounterID(encounterID) then
 					HandleStageEvent(encounterID, stage)
@@ -61,19 +94,19 @@ local function InitStageListener()
 				end
 			end
 		end)
-		addon:Dbg("PhaseTracker", "BigWigs stage listener registered")
+		DbgPrint("BigWigs stage listener registered")
 	end
 
 	-- DBM: FireEvent("DBM_SetStage", mod, modId, stage, encounterId, stageTotal)
 	if DBM and DBM.RegisterCallback then
-		local frame = CreateFrame("Frame")
-		DBM.RegisterCallback(frame, "DBM_SetStage", function(event, mod, modId, stage, encounterId)
+		DBM:RegisterCallback("DBM_SetStage", function(event, mod, modId, stage, encounterId, stageTotal)
+			print(("|cff888888ART|r: DBM stage=%s encId=%s"):format(tostring(stage), tostring(encounterId)))
 			if not stage or stage < 1 then return end
 			if encounterId and configs[encounterId] and configs[encounterId].stages then
 				HandleStageEvent(encounterId, stage)
 			end
 		end)
-		addon:Dbg("PhaseTracker", "DBM stage listener registered")
+		DbgPrint("DBM stage listener registered")
 	end
 end
 
@@ -82,7 +115,7 @@ end
 -- ============================================================
 
 ---
--- @param config.transitions (optional) { {atDuration, phase}, ... } — timeline-based
+-- @param config.transitions (optional) { {atDuration, phase}, ... } — wall-clock phase thresholds
 -- @param config.stages      (optional) { 2, 3, ... } — boss-mod stage-based
 function PhaseTracker:RegisterPhaseConfig(encounterID, config)
 	if not encounterID or type(config) ~= "table" then
@@ -92,9 +125,10 @@ function PhaseTracker:RegisterPhaseConfig(encounterID, config)
 	local cfg = {
 		callbacks = {},
 		currentPhase = 1,
+		encounterStartTime = 0,
 	}
 
-	-- Timeline-based transitions (ENCOUNTER_TIMELINE_EVENT_ADDED, backward-compatible)
+	-- Wall-clock transitions (like MRT/NSRT)
 	if config.transitions then
 		local sorted = {}
 		for _, t in ipairs(config.transitions) do
@@ -130,50 +164,77 @@ end
 
 function PhaseTracker:OnEncounterStart(encounterID)
 	local cfg = configs[encounterID]
-	if cfg then
-		cfg.currentPhase = 1
-		if cfg.transitions then
-			for _, t in ipairs(cfg.transitions) do
-				t.matched = false
-			end
+	if not cfg then return end
+
+	cfg.currentPhase = 1
+	cfg.encounterStartTime = GetTime()
+	if cfg.transitions then
+		for _, t in ipairs(cfg.transitions) do
+			t.matched = false
 		end
+		-- Start wall-clock ticker (fires every 1s)
+		if tickers[encounterID] then
+			tickers[encounterID]:Cancel()
+		end
+		tickers[encounterID] = C_Timer.NewTicker(1, function()
+			CheckWallClockTransitions(encounterID)
+		end)
 	end
 	lastSwapTimestamp = 0
 end
 
 function PhaseTracker:OnEncounterEnd(encounterID)
+	if tickers[encounterID] then
+		tickers[encounterID]:Cancel()
+		tickers[encounterID] = nil
+	end
 	if configs[encounterID] then
 		configs[encounterID].callbacks = {}
 		configs[encounterID].currentPhase = nil
 	end
 end
 
-function PhaseTracker:HandleTimelineEvent(encounterID, duration)
-	local cfg = configs[encounterID]
-	if not cfg or not cfg.transitions then
-		return
-	end
-
-	local now = GetTime()
-	if now - lastSwapTimestamp < PHASE_SWAP_COOLDOWN then
-		return
-	end
-
-	for _, t in ipairs(cfg.transitions) do
-		if not t.matched and ApproximatelyEqual(duration, t.atDuration) then
-			local prevPhase = cfg.currentPhase
-			t.matched = true
-			lastSwapTimestamp = now
-
-			FirePhaseCallbacks(cfg, encounterID, t.phase, prevPhase)
-			return
-		end
-	end
-end
-
 function PhaseTracker:GetCurrentPhase(encounterID)
 	local cfg = configs[encounterID]
 	return cfg and cfg.currentPhase or 1
+end
+
+-- Debug API
+function PhaseTracker:GetConfigs()
+	return configs
+end
+
+function PhaseTracker:PrintState()
+	print("|cffffff00=== ART PhaseTracker State ===|r")
+	print("stageListenerInitialized:", stageListenerInitialized)
+	print("BigWigs:", BigWigs ~= nil and "YES" or "NO")
+	print("DBM:", DBM ~= nil and "YES" or "NO")
+	print("debugEnabled:", PhaseTracker.debugEnabled)
+	print("Registered configs:")
+	local count = 0
+	for eid, cfg in pairs(configs) do
+		count = count + 1
+		local stages = cfg.stages and "{" .. table.concat(
+			(function() local s = {}; for k in pairs(cfg.stages) do s[#s+1]=tostring(k) end; return s end)(), ",") .. "}" or "nil"
+		local transitions = cfg.transitions and ("[" .. #cfg.transitions .. " entries]") or "nil"
+		print(("  enc=%d  currentPhase=%s  stages=%s  transitions=%s  callbacks=%d"):format(
+			eid, tostring(cfg.currentPhase), stages, transitions, #cfg.callbacks))
+	end
+	if count == 0 then
+		print("  (none)")
+	end
+	print("|cffffff00================================|r")
+end
+
+-- Manual test: simulate stage event for active encounter
+function PhaseTracker:SimulateStage(stage)
+	local eid = addon.activeEncounterID
+	if not eid then
+		print("|cffff0000ART PT|r: No active encounter! Start a Mythic encounter first.")
+		return
+	end
+	print(("|cffffff00ART PT|r: Simulating stage %d for encounter %d"):format(stage, eid))
+	HandleStageEvent(eid, stage)
 end
 
 addon:RegisterModule("Common.PhaseTracker", PhaseTracker)

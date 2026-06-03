@@ -75,3 +75,40 @@ SlashCmdList["FICLOG"] = function()
     f.edit:SetText(table.concat(log, "\n", math.max(1, #log - 499), #log))
     f:Show()
 end
+
+-- PhaseTracker debug commands
+SLASH_ARTPT1 = "/artpt"
+SlashCmdList["ARTPT"] = function()
+    local pt = addon.modules and addon.modules["Common.PhaseTracker"]
+    if pt and pt.PrintState then
+        pt:PrintState()
+    else
+        print("ART: PhaseTracker not loaded")
+    end
+end
+
+SLASH_ARTPTDEBUG1 = "/artptdebug"
+SlashCmdList["ARTPTDEBUG"] = function()
+    local pt = addon.modules and addon.modules["Common.PhaseTracker"]
+    if pt then
+        pt.debugEnabled = not pt.debugEnabled
+        print("ART: PhaseTracker debug = " .. tostring(pt.debugEnabled))
+    else
+        print("ART: PhaseTracker not loaded")
+    end
+end
+
+SLASH_ARTPTTEST1 = "/artpttest"
+SlashCmdList["ARTPTTEST"] = function(msg)
+    local stage = tonumber(msg)
+    if not stage then
+        print("ART: Usage: /artpttest <stage>  (e.g. /artpttest 2)")
+        return
+    end
+    local pt = addon.modules and addon.modules["Common.PhaseTracker"]
+    if pt and pt.SimulateStage then
+        pt:SimulateStage(stage)
+    else
+        print("ART: PhaseTracker not loaded")
+    end
+end

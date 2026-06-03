@@ -54,4 +54,5 @@ addon.locales.zhTW = addon.locales.zhTW or {
     OPTIONS_FIC_CENTER_SCREEN_DESC = "顯示自定義焦點施法條，包含打斷計數。",
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY = "關閉粒子效果（P1-P2）",
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY_DESC = "在P1-P2階段將粒子密度降至最低以提高幀數，P3自動恢復。",
+
 }

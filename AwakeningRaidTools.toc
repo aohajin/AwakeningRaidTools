@@ -1,5 +1,5 @@
 ## Interface: 120001, 120005
-## Version: 0.2.17
+## Version: 0.2.18
 ## Title: 覺 醒 Raid Tools
 ## Author: 怨念物
 ## Notes: Raid utility toolkit for 覺 醒 guild.
@@ -40,6 +40,8 @@ Raids/Voidspire/CrownOfTheCosmos.lua
 
 Raids/Dreamrift/_index.lua
 Raids/Dreamrift/ChimaerusTheUndreamtGod.lua
+
+Raids/Amirdrassil/_index.lua
 
 Raids/MarchOfQuelDanas/_index.lua
 Raids/MarchOfQuelDanas/BelorenChildOfAlar.lua

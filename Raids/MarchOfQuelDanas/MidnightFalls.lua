@@ -285,7 +285,12 @@ function Boss:OnMythicEncounterStart(encounterID)
 	local pt = addon.modules and addon.modules["Common.PhaseTracker"]
 	if pt then
 		pt:RegisterPhaseConfig(self.encounterId, {
-			stages = { 2, 3 },
+			transitions = {
+				{ atDuration = 184, phase = 2 },  -- Eclipsed / Total Eclipse
+				{ atDuration = 227, phase = 3 },  -- Dark Meltdown ends
+				{ atDuration = 330, phase = 4 },  -- Dark Meltdown ends
+				{ atDuration = 495, phase = 5 },  -- Final phase (optional)
+			},
 		})
 		pt:RegisterPhaseCallback(self.encounterId, function(_, newPhase)
 			addon:Dbg("MF", ("phase: %d -> %d"):format((newPhase - 1), newPhase))
@@ -295,6 +300,7 @@ function Boss:OnMythicEncounterStart(encounterID)
 			if newPhase >= 3 and IsBossFeatureEnabled("particleDensity") then
 				RestoreCVars()
 			end
+			print(("|cff00ff00ART MF|r: Phase %d -> %d"):format((newPhase - 1), newPhase))
 		end)
 	end
 

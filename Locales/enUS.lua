@@ -55,4 +55,5 @@ addon.locales.enUS = addon.locales.enUS or {
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY = "Disable particle effects (P1-P2)",
     OPTIONS_MIDNIGHTFALLS_PARTICLE_DENSITY_DESC =
     "Set particle density to minimum during phases 1-2 to improve frame rate. Restores normal settings in phase 3.",
+
 }
