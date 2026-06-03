@@ -54,7 +54,6 @@ end
 -- ============================================================
 
 local savedCVars = {}
-local cvarsRestored = false
 
 local function SaveCVars()
 	wipe(savedCVars)
@@ -73,10 +72,8 @@ local function DisableParticleCVars()
 end
 
 local function RestoreCVars()
-	addon:Dbg("MF", ("CVar restore called: restored=%s saved=(%s,%s)"):format(
-		tostring(cvarsRestored), tostring(savedCVars.particle), tostring(savedCVars.raidParticle)))
-	if cvarsRestored then return end
-	cvarsRestored = true
+	addon:Dbg("MF", ("CVar restore: saved=(%s,%s)"):format(
+		tostring(savedCVars.particle), tostring(savedCVars.raidParticle)))
 	if savedCVars.particle then
 		addon:Dbg("MF", ("CVar restore particle -> %s"):format(savedCVars.particle))
 		C_CVar.SetCVar("graphicsParticleDensity", savedCVars.particle)
@@ -85,7 +82,9 @@ local function RestoreCVars()
 		addon:Dbg("MF", ("CVar restore raid -> %s"):format(savedCVars.raidParticle))
 		C_CVar.SetCVar("RaidGraphicsParticleDensity", savedCVars.raidParticle)
 	end
-	wipe(savedCVars)
+	-- savedCVars intentionally NOT wiped here — allows retry at encounter end
+	-- if the in-combat P3 callback restore was silently ignored by the client.
+	-- SaveCVars() handles the wipe at the start of the next encounter.
 end
 
 -- ============================================================
@@ -286,10 +285,7 @@ function Boss:OnMythicEncounterStart(encounterID)
 	local pt = addon.modules and addon.modules["Common.PhaseTracker"]
 	if pt then
 		pt:RegisterPhaseConfig(self.encounterId, {
-			transitions = {
-				{ atDuration = 45.0, phase = 2 },
-				{ atDuration = 97.0, phase = 3 },
-			},
+			stages = { 2, 3 },
 		})
 		pt:RegisterPhaseCallback(self.encounterId, function(_, newPhase)
 			addon:Dbg("MF", ("phase: %d -> %d"):format((newPhase - 1), newPhase))
@@ -303,7 +299,6 @@ function Boss:OnMythicEncounterStart(encounterID)
 	end
 
 	if IsBossFeatureEnabled("particleDensity") then
-		cvarsRestored = false
 		SaveCVars()
 		DisableParticleCVars()
 	end
