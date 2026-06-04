@@ -41,8 +41,6 @@ Raids/Voidspire/CrownOfTheCosmos.lua
 Raids/Dreamrift/_index.lua
 Raids/Dreamrift/ChimaerusTheUndreamtGod.lua
 
-Raids/Amirdrassil/_index.lua
-
 Raids/MarchOfQuelDanas/_index.lua
 Raids/MarchOfQuelDanas/BelorenChildOfAlar.lua
 Raids/MarchOfQuelDanas/MidnightFalls.lua
