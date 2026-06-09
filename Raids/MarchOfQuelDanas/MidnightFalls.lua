@@ -215,7 +215,7 @@ local function CounterOnEvent(_, event, unit)
 			if not isInitialized then InitTracking(); TrySetFocus() end
 			if not hasFocus then return end
 		end
-		if UnitIsUnit(unit, "focus") then
+		if not issecretvalue(unit) and UnitIsUnit(unit, "focus") then
 			DisplayCounter(focusCount + 1)
 		end
 	elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
@@ -225,13 +225,13 @@ local function CounterOnEvent(_, event, unit)
 			if not issecretvalue(unit) then
 				trackCounts[unit] = (trackCounts[unit] or 0) + 1
 			end
-		elseif UnitIsUnit(unit, "focus") then
+		elseif not issecretvalue(unit) and UnitIsUnit(unit, "focus") then
 			focusCount = focusCount + 1
 		end
 		if resetTimer then resetTimer:Cancel() end
 		StartResetTimer()
 	elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" then
-		if hasFocus and UnitIsUnit(unit, "focus") then
+		if hasFocus and not issecretvalue(unit) and UnitIsUnit(unit, "focus") then
 			local counter = addon.modules["Common.Counter"]
 			if counter then counter:Hide() end
 			local castBar = addon.modules["Common.CastBar"]
@@ -251,9 +251,11 @@ local function CounterOnEvent(_, event, unit)
 		if not UnitExists("boss2") then
 			CounterFullReset(); return
 		end
-		if not issecretvalue(unit) and IsBossToken(unit) then trackCounts[unit] = 0 end
-		if hasFocus and UnitIsUnit(unit, "focus") then
-			CounterFullReset(); hasFocus = false; focusCount = 0
+		if not issecretvalue(unit) then
+			if IsBossToken(unit) then trackCounts[unit] = 0 end
+			if hasFocus and UnitIsUnit(unit, "focus") then
+				CounterFullReset(); hasFocus = false; focusCount = 0
+			end
 		end
 	end
 end
