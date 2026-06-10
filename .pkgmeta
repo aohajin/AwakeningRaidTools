@@ -1,3 +1,8 @@
 package-as: AwakeningRaidTools
 
 enable-nolib-creation: no
+
+ignore:
+  scripts/
+  *.bat
+  *.ps1
