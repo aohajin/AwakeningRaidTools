@@ -1,5 +1,5 @@
 ## Interface: 120001, 120005
-## Version: 0.3.3
+## Version: 0.3.4
 ## Title: 覺 醒 Raid Tools
 ## Author: 怨念物
 ## Notes: Raid utility toolkit for 覺 醒 guild.
@@ -14,17 +14,16 @@ Locales/zhCN.lua
 Locales/zhTW.lua
 Locales/_index.lua
 
-Libs/LibEQOL-1.0/LibEQOLEditMode.lua
+Libs/LibStub/LibStub.lua
+Libs/CallbackHandler-1.0/CallbackHandler-1.0.lua
 Libs/LibSharedMedia-3.0/lib.xml
+Libs/LibEQOL-1.0/LibEQOLEditMode.lua
 
 Common/PhaseTracker.lua
 Common/CastBar.lua
 Common/Counter.lua
 Common/NameplateCastMarker.lua
 Common/SpecGearMismatchWarning.lua
-
-Libs/LibStub/LibStub.lua
-Libs/CallbackHandler-1.0/CallbackHandler-1.0.lua
 Libs/AceConsole-3.0/AceConsole-3.0.xml
 Libs/AceGUI-3.0/AceGUI-3.0.xml
 Libs/AceConfig-3.0/AceConfig-3.0.xml
