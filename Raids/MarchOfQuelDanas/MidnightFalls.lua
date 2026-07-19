@@ -110,6 +110,29 @@ local function IsBossToken(unit)
 	return false
 end
 
+-- UnitIsUnit whitelist (compound tokens not allowed)
+local SAFE_UNIT_TOKENS = {
+	player = true, pet = true, vehicle = true,
+	mouseover = true, target = true, focus = true,
+	none = true, npc = true, questnpc = true,
+	softenemy = true, softfriend = true, softinteract = true,
+	boss1 = true, boss2 = true, boss3 = true, boss4 = true, boss5 = true,
+	party1 = true, party2 = true, party3 = true, party4 = true, party5 = true,
+	raid1 = true, raid2 = true, raid3 = true, raid4 = true, raid5 = true,
+	raid6 = true, raid7 = true, raid8 = true, raid9 = true, raid10 = true,
+	raid11 = true, raid12 = true, raid13 = true, raid14 = true, raid15 = true,
+	raid16 = true, raid17 = true, raid18 = true, raid19 = true, raid20 = true,
+	raid21 = true, raid22 = true, raid23 = true, raid24 = true, raid25 = true,
+	raid26 = true, raid27 = true, raid28 = true, raid29 = true, raid30 = true,
+	raid31 = true, raid32 = true, raid33 = true, raid34 = true, raid35 = true,
+	raid36 = true, raid37 = true, raid38 = true, raid39 = true, raid40 = true,
+}
+
+local function IsSafeUnitToken(unit)
+	if issecretvalue(unit) then return false end
+	return SAFE_UNIT_TOKENS[unit] == true
+end
+
 local function CounterReset()
 	wipe(trackCounts)
 	focusCount = 0
@@ -215,7 +238,7 @@ local function CounterOnEvent(_, event, unit)
 			if not isInitialized then InitTracking(); TrySetFocus() end
 			if not hasFocus then return end
 		end
-		if not issecretvalue(unit) and UnitIsUnit(unit, "focus") then
+		if IsSafeUnitToken(unit) and UnitIsUnit(unit, "focus") then
 			DisplayCounter(focusCount + 1)
 		end
 	elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
@@ -225,13 +248,13 @@ local function CounterOnEvent(_, event, unit)
 			if not issecretvalue(unit) then
 				trackCounts[unit] = (trackCounts[unit] or 0) + 1
 			end
-		elseif not issecretvalue(unit) and UnitIsUnit(unit, "focus") then
+		elseif IsSafeUnitToken(unit) and UnitIsUnit(unit, "focus") then
 			focusCount = focusCount + 1
 		end
 		if resetTimer then resetTimer:Cancel() end
 		StartResetTimer()
 	elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" then
-		if hasFocus and not issecretvalue(unit) and UnitIsUnit(unit, "focus") then
+		if hasFocus and IsSafeUnitToken(unit) and UnitIsUnit(unit, "focus") then
 			local counter = addon.modules["Common.Counter"]
 			if counter then counter:Hide() end
 			local castBar = addon.modules["Common.CastBar"]
@@ -253,7 +276,7 @@ local function CounterOnEvent(_, event, unit)
 		end
 		if not issecretvalue(unit) then
 			if IsBossToken(unit) then trackCounts[unit] = 0 end
-			if hasFocus and UnitIsUnit(unit, "focus") then
+			if hasFocus and IsSafeUnitToken(unit) and UnitIsUnit(unit, "focus") then
 				CounterFullReset(); hasFocus = false; focusCount = 0
 			end
 		end
