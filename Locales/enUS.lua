@@ -48,6 +48,8 @@ addon.locales.enUS = addon.locales.enUS or {
     OPTIONS_VASHNIK_DIRECTION_CROSS = "Direction crosshair",
     OPTIONS_VASHNIK_DIRECTION_CROSS_DESC = "Show a screen-centered crosshair that rotates with your facing, to help line up during Plague Wave / fountain mechanics.",
     OPTIONS_VASHNIK_PREVIEW = "Preview crosshair",
+    OPTIONS_VASHNIK_PARTICLE_DENSITY = "Disable particle effects (whole fight)",
+    OPTIONS_VASHNIK_PARTICLE_DENSITY_DESC = "Set particle density to the minimum for the entire encounter to improve FPS; restored automatically at encounter end.",
     OPTIONS_FOCUS_INTERRUPT_COUNTER = "Show focus interrupt counter",
     OPTIONS_FOCUS_INTERRUPT_COUNTER_DESC =
     "Displays the current interrupt count on your focus target's nameplate during combat.",

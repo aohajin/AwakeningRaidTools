@@ -37,15 +37,56 @@ local Boss = {
                 },
             },
         },
+        particleDensity = {
+            type = "toggle",
+            default = false,
+            labelKey = "OPTIONS_VASHNIK_PARTICLE_DENSITY",
+            descKey  = "OPTIONS_VASHNIK_PARTICLE_DENSITY_DESC",
+        },
     },
 }
 
-local function IsDirectionCrossEnabled()
+local function IsBossFeatureEnabled(key)
     local db = AwakeningRaidToolsDB
     if db and db.encounters and db.encounters[Boss.encounterId] then
-        return db.encounters[Boss.encounterId].directionCross ~= false
+        return db.encounters[Boss.encounterId][key] ~= false
     end
     return true
+end
+
+-- ============================================================================
+-- Particle density: disable combat particle effects for the whole fight (no
+-- phase distinction), restored at encounter end. Same as MarchOfQuelDanas /
+-- MidnightFalls but without the phase-based restore.
+-- ============================================================================
+
+local savedCVars = {}
+
+local function SaveParticleCVars()
+    wipe(savedCVars)
+    local particle = C_CVar.GetCVar("graphicsParticleDensity")
+    if particle ~= nil then savedCVars.particle = particle end
+    local raidParticle = C_CVar.GetCVar("RaidGraphicsParticleDensity")
+    if raidParticle ~= nil then savedCVars.raidParticle = raidParticle end
+    addon:Dbg("Vashnik", ("CVar save: particle=%s raid=%s"):format(
+        tostring(savedCVars.particle), tostring(savedCVars.raidParticle)))
+end
+
+local function DisableParticleCVars()
+    addon:Dbg("Vashnik", "CVar disable: particle=0 raid=0")
+    C_CVar.SetCVar("graphicsParticleDensity", "0")
+    C_CVar.SetCVar("RaidGraphicsParticleDensity", "0")
+end
+
+local function RestoreParticleCVars()
+    addon:Dbg("Vashnik", ("CVar restore: saved=(%s,%s)"):format(
+        tostring(savedCVars.particle), tostring(savedCVars.raidParticle)))
+    if savedCVars.particle then
+        C_CVar.SetCVar("graphicsParticleDensity", savedCVars.particle)
+    end
+    if savedCVars.raidParticle then
+        C_CVar.SetCVar("RaidGraphicsParticleDensity", savedCVars.raidParticle)
+    end
 end
 
 -- ============================================================================
@@ -155,8 +196,12 @@ end
 function Boss:OnMythicEncounterStart(encounterID, encounterName, difficultyID, groupSize)
     self.isActive = true
     addon:Dbg(self.name, "start")
-    if IsDirectionCrossEnabled() then
+    if IsBossFeatureEnabled("directionCross") then
         ShowOverlay("HIGH")
+    end
+    if IsBossFeatureEnabled("particleDensity") then
+        SaveParticleCVars()
+        DisableParticleCVars()
     end
     -- Phase tracking: uncomment and fill in transitions once timings are known.
     -- local pt = addon.modules["Common.PhaseTracker"]
@@ -175,6 +220,7 @@ function Boss:OnMythicEncounterEnd(encounterID, encounterName, difficultyID, gro
     addon:Dbg(self.name, "end")
     self._previewing = false
     HideOverlay()
+    RestoreParticleCVars()
 end
 
 function Boss:OnPhaseChange(newPhase, prevPhase)
