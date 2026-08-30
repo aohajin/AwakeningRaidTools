@@ -7,9 +7,11 @@ Mythic-only WoW raid utility addon.
 - `Core/Bootstrap.lua` — module system (`RegisterModule`), encounter lifecycle (`ENCOUNTER_START`/`END`, difficulty gate at Mythic), event hub
 - `AwakeningRaidTools.lua` — entry point, `ADDON_LOADED` → `InitializeModules`
 - `Common/` — reusable modules: `PhaseTracker`, `NameplateCastMarker`, `SpecGearMismatchWarning`
-- `Raids/<Raid>/<Boss>.lua` — per-boss encounter modules (self-declare `features` table, implement `OnMythicEncounterStart`/`End`)
+- `Raids/<Raid>/<Boss>.lua` — per-boss encounter modules (self-declare `features` table, implement `OnMythicEncounterStart`/`End`). `Raids/Aberrus/` is a test raid kept in the main addon (not legacy) for development/testing.
+- `Raids/<Raid>/_index.lua` `instanceId` is the Encounter Journal id (`JournalInstance.ID`), NOT `MapID`/wowhead zone id — `EJ_GetInstanceInfo()` takes `JournalInstance.ID`. Look values up at https://wago.tools/db2/JournalInstance (ID column).
 - `Options/Options.lua` — settings panel, auto-discovers boss features via `addon.modules`
 - `Locales/` — enUS base + zhCN/zhTW overrides, merged into `addon.L`
+- `AwakeningRaidTools-Legacy/` — LoadOnDemand legacy addon (old-raid modules). The main addon exposes its shared table as `_G.AwakeningRaidTools` (see `Core/Bootstrap.lua`) and pulls this addon in via `C_AddOns.LoadAddOn` when an old-raid `ENCOUNTER_START` needs it. `Init.lua` copies the shared table's fields into the legacy namespace so boss files keep the stock `local _, addon = ...` header unchanged. Packaged as a second top-level addon via `.pkgmeta` `move-folders`.
 
 ### Module pattern
 

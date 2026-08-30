@@ -2,7 +2,16 @@ package-as: AwakeningRaidTools
 
 enable-nolib-creation: no
 
+# Ship the LoadOnDemand legacy addon as a second top-level addon in the zip.
+# Source path is relative to .release/ where the main addon (package-as name)
+# already lives; the value is the zip root directory for the legacy addon.
+move-folders:
+  AwakeningRaidTools/AwakeningRaidTools-Legacy: AwakeningRaidTools-Legacy
+
 ignore:
-  scripts/
-  *.bat
-  *.ps1
+  - scripts/
+  - .release-tools/
+  - release.sh
+  - CLAUDE.md
+  - "*.bat"
+  - "*.ps1"

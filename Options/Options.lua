@@ -12,7 +12,24 @@ local INDENT_2 = 48
 local INDENT_3 = 64
 local LABEL_WIDTH = 360
 
-local RAID_ORDER = {"Voidspire", "Dreamrift", "MarchOfQuelDanas", "Aberrus"}
+-- Current-raid modules live in the main addon. Legacy raids are shipped in the
+-- LoadOnDemand AwakeningRaidTools-Legacy addon and only show up in this panel
+-- once their modules have been registered (i.e. after an old-raid encounter
+-- pulled the legacy addon in). The test raid is always loaded with the main
+-- addon and listed last.
+local RAID_ORDER_CURRENT = {"VenomousAbyss"}
+local RAID_ORDER_LEGACY = {"Voidspire", "Dreamrift", "MarchOfQuelDanas"}
+local RAID_ORDER_TEST = {"Aberrus"}
+local RAID_ORDER = {}
+for _, raidKey in ipairs(RAID_ORDER_CURRENT) do
+	RAID_ORDER[#RAID_ORDER + 1] = raidKey
+end
+for _, raidKey in ipairs(RAID_ORDER_LEGACY) do
+	RAID_ORDER[#RAID_ORDER + 1] = raidKey
+end
+for _, raidKey in ipairs(RAID_ORDER_TEST) do
+	RAID_ORDER[#RAID_ORDER + 1] = raidKey
+end
 
 local function GetFeatureEnabled(encounterId, featureName, default)
 	local db = AwakeningRaidToolsDB
@@ -56,6 +73,16 @@ local function SetGeneralFeatureEnabled(key, value)
 	AwakeningRaidToolsDB[key] = value and true or false
 end
 
+local function GetLegacyRaidEnabled(raidKey)
+	local db = AwakeningRaidToolsDB
+	return db and db.LegacyRaidEnabled and db.LegacyRaidEnabled[raidKey] == true
+end
+
+local function SetLegacyRaidEnabled(raidKey, value)
+	AwakeningRaidToolsDB.LegacyRaidEnabled = AwakeningRaidToolsDB.LegacyRaidEnabled or {}
+	AwakeningRaidToolsDB.LegacyRaidEnabled[raidKey] = value and true or nil
+end
+
 local function GetRaidName(raidKey)
 	local raidModule = addon.modules["Raids." .. raidKey]
 	if raidModule and raidModule.instanceId then
@@ -64,6 +91,7 @@ local function GetRaidName(raidKey)
 	end
 	local L = addon.L or {}
 	local keys = {
+		VenomousAbyss = "RAID_VENOMOUS_ABYSS",
 		Voidspire = "RAID_VOIDSPIRE",
 		Dreamrift = "RAID_DREAMRIFT",
 		MarchOfQuelDanas = "RAID_MARCH_OF_QUELDANAS",
@@ -74,8 +102,11 @@ local function GetRaidName(raidKey)
 end
 
 local function GetBossName(module)
-	if module.encounterId then
-		local name = EJ_GetEncounterInfo(module.encounterId)
+	-- EJ_GetEncounterInfo takes the journal encounter id, not the
+	-- DungeonEncounterID used by ENCOUNTER_START.
+	local journalId = module.journalEncounterId or module.encounterId
+	if journalId then
+		local name = EJ_GetEncounterInfo(journalId)
 		if name then return name end
 	end
 	return module.name or "Unknown"
@@ -90,7 +121,7 @@ local function BuildFeatureRegistry()
 	local generalFeatures = {}
 
 	for moduleName, module in pairs(addon.modules) do
-		if module.features then
+		if module.features and next(module.features) then
 			if module.encounterId then
 				local raidKey = module.raidName
 				if not raidKey and type(moduleName) == "string" then
@@ -128,12 +159,22 @@ local function BuildFeatureRegistry()
 	return raidMap, generalFeatures
 end
 
-panel:SetScript("OnShow", function(self)
-	self:SetScript("OnShow", nil)
+local panelBuilt = false
+local scrollFrame
+
+local function BuildPanel(self)
 	local L = addon.L or {}
 	local raidMap, generalFeatures = BuildFeatureRegistry()
 
-	local scrollFrame = CreateFrame("ScrollFrame", nil, self, "UIPanelScrollFrameTemplate")
+	-- Rebuild support: tear down the previous scroll frame (and its children)
+	-- before rebuilding, so toggling the legacy loader refreshes the panel.
+	if scrollFrame then
+		scrollFrame:SetParent(nil)
+		scrollFrame:Hide()
+		scrollFrame = nil
+	end
+
+	scrollFrame = CreateFrame("ScrollFrame", nil, self, "UIPanelScrollFrameTemplate")
 	scrollFrame:SetPoint("TOPLEFT", self, "TOPLEFT", 0, -8)
 	scrollFrame:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -4, 4)
 
@@ -193,6 +234,16 @@ panel:SetScript("OnShow", function(self)
 		return cb
 	end
 
+	local function CreateActionButton(label, yAnchor, xOffset, onClick, disabled)
+		local btn = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
+		btn:SetPoint("TOPLEFT", xOffset, yAnchor + 2)
+		btn:SetText(label)
+		btn:SetSize(220, 22)
+		btn:SetScript("OnClick", onClick)
+		btn:SetEnabled(not disabled)
+		return btn
+	end
+
 	-- Title
 	local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
 	title:SetPoint("TOPLEFT", PADDING_H, -PADDING_H)
@@ -225,6 +276,28 @@ panel:SetScript("OnShow", function(self)
 		end, debugDesc)
 	currentY = currentY - CHECKBOX_SPACING
 
+	-- Legacy load/unload button (stateful label). While an unload is pending
+	-- (awaiting /reload) the unload button is grayed out and a reload button
+	-- appears next to it.
+	local legacyPendingUnload = addon.legacyLoaded and not (AwakeningRaidToolsDB and AwakeningRaidToolsDB.LegacyEnabled)
+	if legacyPendingUnload then
+		local unloadBtn = CreateActionButton(L.OPTIONS_LEGACY_UNLOAD_BUTTON or "Unload legacy raid modules", currentY, INDENT_1, nil, true)
+		local reloadBtn = CreateActionButton(L.OPTIONS_LEGACY_RELOAD_BUTTON or "Reload UI", currentY, INDENT_1, function()
+			ReloadUI()
+		end)
+		reloadBtn:ClearAllPoints() -- drop the anchor set inside CreateActionButton
+		reloadBtn:SetPoint("LEFT", unloadBtn, "RIGHT", 4, 0)
+	else
+		CreateActionButton(addon.legacyLoaded and (L.OPTIONS_LEGACY_UNLOAD_BUTTON or "Unload legacy raid modules") or (L.OPTIONS_LEGACY_LOAD_BUTTON or "Load legacy raid modules"),
+			currentY, INDENT_1, function()
+				local loader = addon.modules["Core.LegacyLoader"]
+				if loader then
+					if addon.legacyLoaded then loader:Disable() else loader:Enable() end
+				end
+			end)
+	end
+	currentY = currentY - CHECKBOX_SPACING
+
 	for _, gen in ipairs(generalFeatures) do
 		for featureName, featureDef in pairs(gen.features) do
 			local label = L[featureDef.labelKey] or featureDef.labelKey or featureName
@@ -244,20 +317,12 @@ panel:SetScript("OnShow", function(self)
 
 	-- ========== BOSS SECTIONS ==========
 
-	for _, raidKey in ipairs(RAID_ORDER) do
-		local raid = raidMap[raidKey]
-		if raid and #raid.bosses > 0 then
-			currentY = currentY - 8
-			currentY = currentY + CreateDivider(currentY)
-			currentY = currentY - 8
-			CreateSectionHeader(raid.name, PADDING_H, currentY)
-			currentY = currentY - 22
+	local function RenderRaidBosses(raid, indent)
+		for _, boss in ipairs(raid.bosses) do
+			CreateBossLabel(boss.name, indent, currentY)
+			currentY = currentY - 20
 
-			for _, boss in ipairs(raid.bosses) do
-				CreateBossLabel(boss.name, INDENT_1, currentY)
-				currentY = currentY - 20
-
-				for featureName, featureDef in pairs(boss.features) do
+			for featureName, featureDef in pairs(boss.features) do
 					local label = L[featureDef.labelKey] or featureDef.labelKey or featureName
 					local tooltip = featureDef.descKey and L[featureDef.descKey] or nil
 					local subWidgets = {}
@@ -310,12 +375,66 @@ local depKey = subDef.dependsOn; local depChecked = depKey and GetSubFeatureEnab
 
 				currentY = currentY - 4
 			end
+	end
+
+	for _, raidKey in ipairs(RAID_ORDER) do
+		local raid = raidMap[raidKey]
+		if raid and #raid.bosses > 0 and not (addon.IsLegacyRaid and addon:IsLegacyRaid(raidKey)) then
+			currentY = currentY - 8
+			currentY = currentY + CreateDivider(currentY)
+			currentY = currentY - 8
+			CreateSectionHeader(raid.name, PADDING_H, currentY)
+			currentY = currentY - 22
+
+			RenderRaidBosses(raid, INDENT_1)
+		end
+	end
+
+	-- ========== LEGACY RAIDS ==========
+	-- Only shown once the legacy addon is loaded via the general toggle above.
+
+	if addon.legacyLoaded then
+		currentY = currentY - 8
+		currentY = currentY + CreateDivider(currentY)
+		currentY = currentY - 8
+		CreateSectionHeader(L.OPTIONS_LEGACY_HEADER or "LEGACY RAIDS", PADDING_H, currentY)
+		currentY = currentY - 22
+
+		for _, raidKey in ipairs(RAID_ORDER_LEGACY) do
+			local raid = raidMap[raidKey]
+			local checked = GetLegacyRaidEnabled(raidKey)
+			CreateCheckbox(GetRaidName(raidKey), currentY, INDENT_1, checked, function(value)
+				SetLegacyRaidEnabled(raidKey, value)
+				if addon.RebuildOptionsPanel then
+					addon.RebuildOptionsPanel()
+				end
+			end)
+			currentY = currentY - CHECKBOX_SPACING
+
+			if checked and raid then
+				RenderRaidBosses(raid, INDENT_2)
+			end
 		end
 	end
 
 	content:SetHeight(math.abs(currentY) + 20)
 	content:SetWidth(scrollFrame:GetWidth() - 8)
+end
+
+panel:SetScript("OnShow", function(self)
+	if not panelBuilt then
+		BuildPanel(self)
+		panelBuilt = true
+	end
 end)
+
+-- Called by Core.LegacyLoader after the legacy addon loads, so historical
+-- raid options appear without requiring a /reload.
+addon.RebuildOptionsPanel = function()
+	if panelBuilt then
+		BuildPanel(panel)
+	end
+end
 
 local canvasCategory, layout = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
 Settings.RegisterAddOnCategory(canvasCategory)

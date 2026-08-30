@@ -39,8 +39,15 @@ addon.locales.enUS = addon.locales.enUS or {
     OPTIONS_SPEC_GEAR_MISMATCH = "Enable gear mismatch check",
 
     OPTIONS_GENERAL_HEADER = "General",
+    OPTIONS_LEGACY_LOAD_BUTTON = "Load legacy raid modules",
+    OPTIONS_LEGACY_UNLOAD_BUTTON = "Unload legacy raid modules",
+    OPTIONS_LEGACY_RELOAD_BUTTON = "Reload UI",
+    OPTIONS_LEGACY_HEADER = "Legacy Raids",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY = "Enable interrupt display",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY_DESC = "Show interrupt markers on enemy nameplates during the encounter.",
+    OPTIONS_VASHNIK_DIRECTION_CROSS = "Direction crosshair",
+    OPTIONS_VASHNIK_DIRECTION_CROSS_DESC = "Show a screen-centered crosshair that rotates with your facing, to help line up during Plague Wave / fountain mechanics.",
+    OPTIONS_VASHNIK_PREVIEW = "Preview crosshair",
     OPTIONS_FOCUS_INTERRUPT_COUNTER = "Show focus interrupt counter",
     OPTIONS_FOCUS_INTERRUPT_COUNTER_DESC =
     "Displays the current interrupt count on your focus target's nameplate during combat.",

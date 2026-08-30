@@ -1,0 +1,25 @@
+## Interface: 120007, 120100
+## Title: 覺 醒 Raid Tools - Legacy
+## Author: 怨念物
+## Notes: Legacy raid modules for 覺 醒 Raid Tools. Loaded on demand by the main addon when an old-raid encounter starts.
+## Dependencies: AwakeningRaidTools
+## LoadOnDemand: 1
+## X-Part-Of: AwakeningRaidTools
+## Group: AwakeningRaidTools
+
+Init.lua
+
+Raids/Dreamrift/_index.lua
+Raids/Dreamrift/ChimaerusTheUndreamtGod.lua
+
+Raids/MarchOfQuelDanas/_index.lua
+Raids/MarchOfQuelDanas/BelorenChildOfAlar.lua
+Raids/MarchOfQuelDanas/MidnightFalls.lua
+
+Raids/Voidspire/_index.lua
+Raids/Voidspire/ImperatorAverzian.lua
+Raids/Voidspire/Vorasius.lua
+Raids/Voidspire/FallenKingSalhadaar.lua
+Raids/Voidspire/VaelgorAndEzzorak.lua
+Raids/Voidspire/LightblindedVanguard.lua
+Raids/Voidspire/CrownOfTheCosmos.lua

@@ -27,3 +27,4 @@ CHANGELOG.md
 .claude/
 run-github-mcp.bat
 .tools/
+.release-tools/
