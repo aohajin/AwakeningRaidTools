@@ -19,6 +19,30 @@ addon.encounterModulesByID = addon.encounterModulesByID or {}
 addon.activeEncounterID = nil
 addon.activeEncounterModules = addon.activeEncounterModules or {}
 
+-- Voice packs shipped inside the addon under Media\VoicePacks\<name>\. The
+-- default pack "Aloy" is the shipped voice pack; every entry is a
+-- directory name and the options panel builds its picker from this list.
+-- Add a new pack here and create the matching Media\VoicePacks\<name>\
+-- folder with audio files named like the keys in addon.voiceSounds.
+addon.voicePacks = {
+    "Aloy", -- default voice pack
+    "AnnieSeal",
+}
+-- The voice pack used when the saved selection is empty or stale.
+addon.voicePackDefault = "Aloy"
+
+-- Every logical sound the addon can play, keyed by semantic action rather
+-- than boss-specific name (e.g. "go_left" not "virulence_left") so voice
+-- packs stay reusable across encounters. Each key maps to a file
+-- "<key>.ogg" inside Media\VoicePacks\<pack>\. Add new keys here; the
+-- options preview dropdown lists them automatically.
+addon.voiceSounds = {
+    "go_left",  -- Virulence variant 1299899 -> move left
+    "go_right", -- Virulence variant 1297707 -> move right
+}
+
+
+
 function addon:RegisterModule(name, module)
     self.modules[name] = module
     module.moduleName = name
@@ -143,8 +167,8 @@ local function DeactivateEncounter(encounterID, encounterName, difficultyID, gro
     end
 end
 
--- Legacy modules are loaded explicitly from the options panel
--- (Core.LegacyLoader toggle); never auto-load them on encounter start.
+-- Legacy modules are loaded from the options panel (enabling a legacy raid
+-- checkbox LoadAddOns them); never auto-load on encounter start.
 local function EnsureEncounterModules(encounterID)
     if addon.encounterModulesByID[encounterID] then
         return true

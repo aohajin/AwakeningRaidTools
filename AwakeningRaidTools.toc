@@ -1,5 +1,5 @@
 ## Interface: 120007, 120100
-## Version: 0.4.1
+## Version: 0.5.0
 ## Title: 覺 醒 Raid Tools
 ## Author: 怨念物
 ## Notes: Raid utility toolkit for 覺 醒 guild.
@@ -54,4 +54,6 @@ Raids/Aberrus/ScalecommanderSarkareth.lua
 
 AwakeningRaidTools.lua
 
+Options/ART_SettingsTemplates.lua
+Options/ART_SettingsTemplates.xml
 Options/Options.lua

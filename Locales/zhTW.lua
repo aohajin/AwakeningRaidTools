@@ -37,6 +37,15 @@ addon.locales.zhTW = addon.locales.zhTW or {
 
     OPTIONS_SPEC_GEAR_MISMATCH = "啟用錯誤裝備檢查",
 
+    OPTIONS_VOICEPACK = "語音包",
+    OPTIONS_VOICEPACK_DEFAULT = "預設（Aloy）",
+    OPTIONS_VOICEPACK_PREVIEW = "試聽",
+    OPTIONS_VOICEPACK_PREVIEW_SOUND = "試聽聲音",
+    OPTIONS_VOICEPACK_PICK_SOUND = "選擇聲音試聽",
+    OPTIONS_VOICEPACK_GROUP = "語音包",
+    OPTIONS_VOICEPACK_PREVIEW_HINT = "試聽：選擇聲音以試聽所選語音包的效果（預設 Aloy）。",
+    OPTIONS_VOICEPACK_DESC =
+    "Boss 語音使用的語音包。所有語音位於 Media\\VoicePacks\\<語音包名>\\ 下，每個語音包都包含相同的檔案名稱（如 go_left.ogg）。Aloy 是隨插件附帶的預設語音包。",
     OPTIONS_GENERAL_HEADER = "一般",
     OPTIONS_LEGACY_LOAD_BUTTON = "載入歷史團本模組",
     OPTIONS_LEGACY_UNLOAD_BUTTON = "卸載歷史團本模組",
@@ -44,6 +53,9 @@ addon.locales.zhTW = addon.locales.zhTW or {
     OPTIONS_LEGACY_HEADER = "歷史團本",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY = "啟用打斷顯示",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY_DESC = "在戰鬥中於敵方姓名板上顯示打斷標記。",
+    OPTIONS_SSZORAK_VIRULENCE_DIRECTION = "劇毒方向語音",
+    OPTIONS_SSZORAK_VIRULENCE_DIRECTION_DESC =
+    "獲得劇毒 debuff 時播放方向語音。斯索拉克的劇毒有兩種技能變體(1297707/1299899)，結束時會向不同方向發射毒液；由客戶端匹配光環後播放對應語音(Media/Sounds/go_left.ogg 或 go_right.ogg)。",
     OPTIONS_VASHNIK_DIRECTION_CROSS = "方向瞄準線",
     OPTIONS_VASHNIK_DIRECTION_CROSS_DESC = "在螢幕中央顯示隨你朝向旋轉的十字瞄準線，輔助瘟疫浪潮/噴泉機制走位。",
     OPTIONS_VASHNIK_PREVIEW = "預覽瞄準線",

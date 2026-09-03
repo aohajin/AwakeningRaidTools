@@ -1,50 +1,56 @@
 local _, addon = ...
 
--- Two-level gating for the legacy addon:
---   1. A stateful button in the options panel (Load/Unload legacy raid
---      modules) loads the whole AwakeningRaidTools-Legacy addon on demand.
---      Until it is loaded, the per-raid section below is not shown.
---   2. Per-raid toggles (AwakeningRaidToolsDB.LegacyRaidEnabled[raidKey])
---      control activation at ENCOUNTER_START (see Core/Bootstrap.lua
---      IsModuleEnabled). Disabling a raid only suspends its boss modules; the
---      boss feature settings are kept in the DB and come back when re-enabled.
+-- Single-source gating for the legacy addon:
+--   AwakeningRaidToolsDB.LegacyRaidEnabled[raidKey]  (per-raid boolean)
+-- is the ONLY persisted state. "Load the legacy addon" is derived from it:
+-- any raid enabled -> load on login; none enabled -> do not load.
+-- Boss activation at ENCOUNTER_START checks the same per-raid flag
+-- (see Core/Bootstrap.lua IsModuleEnabled). There is no separate master
+-- switch anymore.
 local LegacyLoader = {
     name = "LegacyLoader",
 }
 
+local LEGACY_RAID_KEYS = { "Voidspire", "Dreamrift", "MarchOfQuelDanas" }
 local LEGACY_ADDON_NAME = "AwakeningRaidTools-Legacy"
 local LoadAddOn = C_AddOns and C_AddOns.LoadAddOn or LoadAddOn
 local GetAddOnInfo = C_AddOns and C_AddOns.GetAddOnInfo or GetAddOnInfo
 
--- Raids shipped in the legacy addon. Keep in sync with RAID_ORDER_LEGACY in
--- Options/Options.lua.
-local LEGACY_RAIDS = {
-    Voidspire = true,
-    Dreamrift = true,
-    MarchOfQuelDanas = true,
-}
-
 function addon:IsLegacyRaid(raidKey)
-    return LEGACY_RAIDS[raidKey] == true
+    for _, key in ipairs(LEGACY_RAID_KEYS) do
+        if key == raidKey then return true end
+    end
+    return false
 end
 
+-- True when any legacy raid is enabled in the saved DB.
+local function AnyLegacyRaidEnabled()
+    local db = AwakeningRaidToolsDB
+    if not (db and db.LegacyRaidEnabled) then return false end
+    for _, key in ipairs(LEGACY_RAID_KEYS) do
+        if db.LegacyRaidEnabled[key] then return true end
+    end
+    return false
+end
+
+-- Load the legacy addon if the DB enables any legacy raid. LoadAddOn is
+-- synchronous; the boss modules then register into the shared addon table.
 function LegacyLoader:OnInitialize()
-    if AwakeningRaidToolsDB and AwakeningRaidToolsDB.LegacyEnabled then
-        self:Enable()
+    if AnyLegacyRaidEnabled() then
+        self:LoadIfNeeded()
     end
 end
 
--- Called by the "Load legacy raid modules" button. LoadAddOn is synchronous;
--- when it returns, the legacy modules are already registered into the shared
--- addon table.
-function LegacyLoader:Enable()
+-- LoadAddOn the legacy addon (idempotent). Does not touch the DB; enabling a
+-- raid (options checkbox) is what records intent, and this only materialises
+-- the modules so boss options / encounters can use them after a reload.
+function LegacyLoader:LoadIfNeeded()
     if addon.legacyLoaded then
         return true
     end
     local loaded = LoadAddOn(LEGACY_ADDON_NAME)
     if loaded then
         addon.legacyLoaded = true
-        AwakeningRaidToolsDB.LegacyEnabled = true
         addon:Dbg("LegacyLoader", LEGACY_ADDON_NAME .. " loaded")
         print("ART: legacy raid modules loaded")
     else
@@ -53,25 +59,10 @@ function LegacyLoader:Enable()
         addon:Dbg("LegacyLoader", ("LoadAddOn(%s) failed: %s"):format(LEGACY_ADDON_NAME, tostring(why)))
         print(("ART: unable to load %s (%s)"):format(LEGACY_ADDON_NAME, tostring(why)))
     end
-    -- Refresh the options panel so the per-raid section shows up on success.
-    if addon.RebuildOptionsPanel then
-        addon.RebuildOptionsPanel()
-    end
     return addon.legacyLoaded
 end
 
--- Called by the "Unload legacy raid modules" button. Loaded addons cannot be
--- unloaded at runtime, so this only records the intent; the legacy addon is
--- left out after the next /reload.
-function LegacyLoader:Disable()
-    AwakeningRaidToolsDB.LegacyEnabled = nil
-    if addon.legacyLoaded then
-        print("ART: legacy raid modules will unload after /reload")
-    end
-    -- Refresh the options panel: unload button grayed out + reload button.
-    if addon.RebuildOptionsPanel then
-        addon.RebuildOptionsPanel()
-    end
-end
+-- Kept for callers that used the old name; delegates to LoadIfNeeded.
+LegacyLoader.Enable = LegacyLoader.LoadIfNeeded
 
 addon:RegisterModule("Core.LegacyLoader", LegacyLoader)

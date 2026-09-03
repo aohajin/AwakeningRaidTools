@@ -1,0 +1,56 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd">
+
+    <!--
+        ART_SettingsCheckRowTemplate
+        Checkbox-on-the-LEFT settings row. Inherits the stock element base and,
+        via ART_SettingsCheckRowMixin (a subclass of SettingsCheckboxControlMixin),
+        keeps all binding / tooltip / enable-state behaviour; only the anchors
+        change (checkbox left, label fills the row). Bound to a setting via
+        Settings.CreateControlInitializer.
+    -->
+    <Frame name="ART_SettingsCheckRowTemplate"
+           inherits="SettingsListElementTemplate"
+           mixin="ART_SettingsCheckRowMixin"
+           virtual="true">
+        <Size x="320" y="26" />
+        <Scripts>
+            <OnLoad method="OnLoad"/>
+        </Scripts>
+    </Frame>
+
+    <!--
+        ART_ReloadButtonTemplate
+        A settings row whose button is hidden until a "dirty" variable becomes
+        true (e.g. legacy raid toggles changed -> needs /reload). The mixin
+        watches the given setting variable via a callback handle and toggles
+        the row's visibility. Data keys expected on the initializer:
+          buttonText / buttonClick (standard), dirtySetting (Setting object).
+    -->
+    <Frame name="ART_ReloadButtonTemplate"
+           inherits="SettingButtonControlTemplate"
+           mixin="ART_ReloadButtonMixin"
+           virtual="true">
+        <Scripts>
+            <OnLoad method="OnLoad"/>
+        </Scripts>
+    </Frame>
+
+    <!--
+        ART_BossLabelTemplate
+        A static boss-name row used to group the boss's feature toggles via a
+        parent relation (children auto-indent one more level and shrink). The
+        mixin only styles the label; it has no checkbox/button. Data: name.
+    -->
+    <Frame name="ART_BossLabelTemplate"
+           inherits="SettingsListElementTemplate"
+           mixin="ART_BossLabelMixin"
+           virtual="true">
+        <Size x="320" y="24" />
+        <Scripts>
+            <OnLoad method="OnLoad"/>
+        </Scripts>
+    </Frame>
+
+</Ui>

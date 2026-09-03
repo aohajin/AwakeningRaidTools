@@ -38,6 +38,15 @@ addon.locales.enUS = addon.locales.enUS or {
 
     OPTIONS_SPEC_GEAR_MISMATCH = "Enable gear mismatch check",
 
+    OPTIONS_VOICEPACK = "Voice pack",
+    OPTIONS_VOICEPACK_DEFAULT = "Default (Aloy)",
+    OPTIONS_VOICEPACK_PREVIEW = "Preview",
+    OPTIONS_VOICEPACK_PREVIEW_SOUND = "Preview sound",
+    OPTIONS_VOICEPACK_PICK_SOUND = "Select to preview",
+    OPTIONS_VOICEPACK_GROUP = "Voice pack",
+    OPTIONS_VOICEPACK_PREVIEW_HINT = "Preview: pick a sound to hear it from the selected voice pack (Aloy by default).",
+    OPTIONS_VOICEPACK_DESC =
+    "Which voice pack to use for boss audio. All voices live under Media\\VoicePacks\\<name>\\ and every pack ships the same file names (e.g. go_left.ogg). Aloy is the default pack bundled with the addon.",
     OPTIONS_GENERAL_HEADER = "General",
     OPTIONS_LEGACY_LOAD_BUTTON = "Load legacy raid modules",
     OPTIONS_LEGACY_UNLOAD_BUTTON = "Unload legacy raid modules",
@@ -45,6 +54,9 @@ addon.locales.enUS = addon.locales.enUS or {
     OPTIONS_LEGACY_HEADER = "Legacy Raids",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY = "Enable interrupt display",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY_DESC = "Show interrupt markers on enemy nameplates during the encounter.",
+    OPTIONS_SSZORAK_VIRULENCE_DIRECTION = "Virulence direction voice",
+    OPTIONS_SSZORAK_VIRULENCE_DIRECTION_DESC =
+    "Play a direction voice when you gain Virulence. Sszorak's Virulence has two spell variants (1297707/1299899) that launch poison in different directions; the client matches the aura and plays the bound sound (Media/Sounds/go_left.ogg or go_right.ogg).",
     OPTIONS_VASHNIK_DIRECTION_CROSS = "Direction crosshair",
     OPTIONS_VASHNIK_DIRECTION_CROSS_DESC = "Show a screen-centered crosshair that rotates with your facing, to help line up during Plague Wave / fountain mechanics.",
     OPTIONS_VASHNIK_PREVIEW = "Preview crosshair",
