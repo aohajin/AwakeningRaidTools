@@ -19,6 +19,18 @@ SlashCmdList["ART"] = function()
     end
 end
 
+-- Virulence voice diagnostic: prints all conditions that could stop the
+-- Sszorak direction voice from playing. Ask affected users to run this.
+SLASH_ARTVOICE1 = "/artvoice"
+SlashCmdList["ARTVOICE"] = function()
+    local boss = addon.modules["Raids.VenomousAbyss.Sszorak"]
+    if boss and boss.DiagnoseVoice then
+        boss:DiagnoseVoice()
+    else
+        print("ART: Sszorak module not loaded")
+    end
+end
+
 SLASH_PARTICLE1 = "/particle"
 SlashCmdList["PARTICLE"] = function()
     print("ART: graphicsParticleDensity = " .. tostring(C_CVar.GetCVar("graphicsParticleDensity")))
