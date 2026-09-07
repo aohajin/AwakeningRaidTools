@@ -546,15 +546,27 @@ function Boss:DiagnoseVoice()
             soundFileName = ResolveSoundPath(probe.voiceKey),
         }
         local ok, id = pcall(C_UnitAuras.AddAuraSound, TRIGGER_ADDED, soundInfo)
-        out("probe register: ok=%s id=%s", tostring(ok), tostring(id))
-        if ok and type(id) == "number" then
-            pcall(C_UnitAuras.RemoveAuraSound, id)
+        if ok then
+            local idDesc
+            local idType = type(id)
+            if idType == "number" and not (issecretvalue and issecretvalue(id)) then
+                idDesc = tostring(id)
+            else
+                idDesc = "<" .. tostring(idType) .. (issecretvalue and issecretvalue(id) and ":secret>" or ">")
+            end
+            out("probe register: ok=true id=%s", idDesc)
+            if type(id) == "number" then
+                pcall(C_UnitAuras.RemoveAuraSound, id)
+            end
+        else
+            out("probe register: ok=false (%s)", tostring(id))
         end
     end
 
     -- 7. conflicting addons
+    local GetAddOnInfoCompat = C_AddOns and C_AddOns.GetAddOnInfo or GetAddOnInfo
     for _, name in ipairs({ "DBM-Core", "NorthernSkyRaidTools", "DreamForgeTools" }) do
-        local _, _, _, loadable = GetAddOnInfo(name)
+        local _, _, _, loadable = GetAddOnInfoCompat(name)
         out("%s installed: %s", name, tostring(loadable == true))
     end
 
