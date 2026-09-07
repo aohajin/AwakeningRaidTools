@@ -61,6 +61,9 @@ addon.locales.enUS = addon.locales.enUS or {
     OPTIONS_SSZORAK_COMPASS_DESC =
     "Show a screen-centred 8-direction marker compass that rotates with your facing during Sszorak (raid-target icons 1-8 around the circle). Useful as a direction reference for venom/soak mechanics.",
     OPTIONS_SSZORAK_COMPASS_PREVIEW = "Preview compass",
+    OPTIONS_SSZORAK_COMPASS_EDIT_MODE = "Adjust positions in Edit Mode",
+    OPTIONS_SSZORAK_COMPASS_EDIT_MODE_DESC =
+    "Opens Blizzard's Edit Mode so you can drag the compass, the wind-call buttons and the order table to any screen position.",
     OPTIONS_SSZORAK_COMPASS_WINDCALL = "Wind outlet calls",
     OPTIONS_SSZORAK_COMPASS_WINDCALL_DESC =
     "When the compass is on, wind calls (\"raid_target_N\" in raid chat) pulse the opposite marker automatically. Enable this to also show the {rt1}-{rt6} send buttons (preview) so the leader can broadcast test calls. Marks clear 20s after each damage-amp window.",

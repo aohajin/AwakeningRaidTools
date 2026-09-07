@@ -36,6 +36,16 @@ local Boss = {
                     end,
                 },
                 {
+                    type = "button",
+                    key = "editMode",
+                    labelKey = "OPTIONS_SSZORAK_COMPASS_EDIT_MODE",
+                    onClick = function()
+                        if EditModeManagerFrame then
+                            ShowUIPanel(EditModeManagerFrame)
+                        end
+                    end,
+                },
+                {
                     type = "toggle",
                     key = "windCall",
                     labelKey = "OPTIONS_SSZORAK_COMPASS_WINDCALL",

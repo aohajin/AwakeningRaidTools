@@ -60,6 +60,9 @@ addon.locales.zhTW = addon.locales.zhTW or {
     OPTIONS_SSZORAK_COMPASS_DESC =
     "斯索拉克戰鬥中顯示螢幕中央的八方向標記羅盤(圓形環繞團隊標記 1-8)，隨你的朝向旋轉，作為毒液/放球機制的方向參考。",
     OPTIONS_SSZORAK_COMPASS_PREVIEW = "預覽羅盤",
+    OPTIONS_SSZORAK_COMPASS_EDIT_MODE = "在編輯模式中調整位置",
+    OPTIONS_SSZORAK_COMPASS_EDIT_MODE_DESC =
+    "打開暴雪編輯模式，可拖曳羅盤、風向喊話按鈕與序號表到任意螢幕位置。",
     OPTIONS_SSZORAK_COMPASS_WINDCALL = "風向喊話",
     OPTIONS_SSZORAK_COMPASS_WINDCALL_DESC =
     "羅盤開啟時自動監聽團隊喊話 \"raid_target_N\" 並在對側標記脈衝。開啟本項後預覽模式額外顯示 {rt1}-{rt6} 發送按鈕，供團長廣播測試喊話。每次易傷窗口後 20 秒清空標記。",

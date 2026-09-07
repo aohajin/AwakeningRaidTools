@@ -1,5 +1,7 @@
 local _, addon = ...
 
+local LEM = LibStub and LibStub("LibEQOLEditMode-1.0")
+
 -- ============================================================================
 -- FacingCompass: a screen-centred, 8-direction marker compass that rotates
 -- with the player's facing (reads MinimapCompassTexture:GetRotation, the
@@ -36,8 +38,8 @@ local compassFrame
 local markers = {}
 local pulseLayers = {} -- [slot] pulse ring layer (rotates with the disc)
 local clickButtons = {} -- [marker] click buttons 1..6 (wind-call sender)
-local btnRow -- draggable container for the click buttons
-local windTable -- draggable order table (序号 1 2 3 / 对侧 rt 图标)
+local btnRow -- container for the click buttons (repositionable via Edit Mode)
+local windTable -- order table (序号 1 2 3 / 对侧 rt 图标; Edit Mode repositionable)
 local windTableRow1 = {} -- [slot] order label texture/number
 local windTableRow2 = {} -- [slot] opposite-marker icon texture
 local background
@@ -300,7 +302,13 @@ local function CreateCompassFrame()
     compassFrame:SetFrameStrata("DIALOG")
     compassFrame:SetFrameLevel(180)
     compassFrame:SetClampedToScreen(true)
-    compassFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    -- Compass honours the saved position (Edit Mode), default screen centre.
+    local compPos = cfg("compassPos")
+    if type(compPos) == "table" and compPos.x then
+        compassFrame:SetPoint("CENTER", UIParent, "CENTER", compPos.x, compPos.y)
+    else
+        compassFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    end
 
     background = compassFrame:CreateTexture(nil, "BACKGROUND")
     background:SetTexture(CIRCLE_TEX)
@@ -330,17 +338,16 @@ local function CreateCompassFrame()
         pulse:Hide()
     end
 
-    -- Click buttons (markers 1..6, raid icons) in a draggable row anchored
-    -- under the compass; shown only when wind-call sending is enabled.
-    -- The row is its own UIParent frame so StartMoving works; its position is
-    -- stored to DB.FacingCompass.btnPos.
+    -- Click buttons (markers 1..6, raid icons) in a row anchored under the
+    -- compass; shown only when wind-call sending is enabled. The row is its
+    -- own UIParent frame; repositioned via Edit Mode (LEM), position stored
+    -- to DB.FacingCompass.btnPos.
     btnRow = _G.CreateFrame("Frame", nil, UIParent)
     btnRow:SetFrameStrata("DIALOG")
     btnRow:SetFrameLevel(200)
     btnRow:SetSize(6 * 38, 40)
     -- Anchor to UIParent (absolute), positioned under the compass unless the
-    -- user dragged it before (saved btnPos). Anchoring to UIParent keeps
-    -- StartMoving/StopMovingOrSizing stable.
+    -- user repositioned it in Edit Mode before (saved btnPos).
     local savedPos = cfg("btnPos")
     if type(savedPos) == "table" and savedPos.x then
         btnRow:SetPoint(savedPos.point or "CENTER", UIParent,
@@ -349,13 +356,7 @@ local function CreateCompassFrame()
         -- Initial: directly under the (screen-centred) compass.
         btnRow:SetPoint("CENTER", UIParent, "CENTER", 0, -(cfg("size") * 0.5 + 34))
     end
-    btnRow:EnableMouse(true)
-    -- Manual right-button drag (frame drag APIs can conflict with the child
-    -- buttons' click handling). We track cursor movement ourselves.
-    local dragging = false
-    local dragStartX, dragStartY = 0, 0
-    local baseX, baseY = 0, 0
-    btnRow:Hide()
+    btnRow:EnableMouse(false)
 
     for i = 1, 6 do
         local btn = _G.CreateFrame("Button", nil, btnRow)
@@ -366,7 +367,7 @@ local function CreateCompassFrame()
         icon:SetTexture(MarkerTexture(i))
         icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) -- trim raid-icon ring padding
         local marker = i -- capture
-        -- Left click sends the call; right button starts a drag of the row.
+        -- Left click sends the call.
         btn:RegisterForClicks("LeftButtonUp")
         btn:SetScript("OnClick", function(self, button)
             if button == "LeftButton" then
@@ -375,37 +376,11 @@ local function CreateCompassFrame()
                 end
             end
         end)
-        -- Manual drag: right button down -> begin, move -> follow, up -> end.
-        btn:SetScript("OnMouseDown", function(self, button)
-            if button == "RightButton" and not dragging then
-                dragging = true
-                dragStartX, dragStartY = GetCursorPosition()
-                local _, _, _, x, y = btnRow:GetPoint(1)
-                baseX, baseY = x or 0, y or 0
-            end
-        end)
-        btn:SetScript("OnUpdate", function(self, elapsed)
-            if not dragging then return end
-            local curX, curY = GetCursorPosition()
-            local scale = self:GetEffectiveScale()
-            local dx = (curX - dragStartX) / scale
-            local dy = (curY - dragStartY) / scale
-            btnRow:ClearAllPoints()
-            btnRow:SetPoint("CENTER", UIParent, "CENTER", baseX + dx, baseY + dy)
-        end)
-        btn:SetScript("OnMouseUp", function(self, button)
-            if button == "RightButton" and dragging then
-                dragging = false
-                local point, _, relativePoint, x, y = btnRow:GetPoint(1)
-                AwakeningRaidToolsDB.FacingCompass = AwakeningRaidToolsDB.FacingCompass or {}
-                AwakeningRaidToolsDB.FacingCompass.btnPos = { point = point, relativePoint = relativePoint, x = x, y = y }
-            end
-        end)
         clickButtons[i] = btn
     end
 
     -- Wind order table: two rows (order 1..3 / opposite marker icons). Shown
-    -- with the compass during combat/preview; draggable like btnRow.
+    -- with the compass during combat/preview; repositioned via Edit Mode.
     windTable = _G.CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
     windTable:SetFrameStrata("DIALOG")
     windTable:SetFrameLevel(190)
@@ -451,47 +426,61 @@ local function CreateCompassFrame()
         icon:SetPoint("CENTER", windTable, "BOTTOMLEFT", (slot - 0.5) * 40, 18)
         windTableRow2[slot] = icon
     end
-    -- Draggable table: a full-size transparent mouse layer on top so any
-    -- point (numbers/icons/padding) can be grabbed with left OR right button.
-    local dragLayer = _G.CreateFrame("Frame", nil, windTable)
-    dragLayer:SetAllPoints(windTable)
-    dragLayer:SetFrameLevel(50)
-    dragLayer:EnableMouse(true)
-    dragLayer:RegisterForDrag("LeftButton", "RightButton")
-    local wtDragging = false
-    local wtStartX, wtStartY = 0, 0
-    local wtBaseX, wtBaseY = 0, 0
-    local function EndTableDrag()
-        if not wtDragging then return end
-        wtDragging = false
-        local point, _, relativePoint, x, y = windTable:GetPoint(1)
-        AwakeningRaidToolsDB.FacingCompass = AwakeningRaidToolsDB.FacingCompass or {}
-        AwakeningRaidToolsDB.FacingCompass.windTablePos = { point = point, relativePoint = relativePoint, x = x, y = y }
-    end
-    dragLayer:SetScript("OnMouseDown", function(self, button)
-        if button == "LeftButton" or button == "RightButton" then
-            wtDragging = true
-            wtStartX, wtStartY = GetCursorPosition()
-            local _, _, _, x, y = windTable:GetPoint(1)
-            wtBaseX, wtBaseY = x or 0, y or 0
+    -- Draggable in Edit Mode only: LEM:AddFrame below registers the compass,
+    -- send-button row and order table as EditMode systems so the player can
+    -- reposition all three in Blizzard's Edit Mode (no runtime drag layers).
+
+    -- Register all three movable frames with LibEQOLEditMode (Edit Mode).
+    -- Each gets its own selection box; Blizzard's layout manager reports the
+    -- final point/x/y through our callback, which persists per-frame keys.
+    if LEM then
+        compassFrame.editModeName = "Awakening Raid Tools: Compass"
+        btnRow.editModeName = "Awakening Raid Tools: Wind call buttons"
+        windTable.editModeName = "Awakening Raid Tools: Wind order table"
+
+        local function SavePos(key)
+            return function(frame)
+                local point, _, relativePoint, x, y = frame:GetPoint(1)
+                AwakeningRaidToolsDB.FacingCompass = AwakeningRaidToolsDB.FacingCompass or {}
+                AwakeningRaidToolsDB.FacingCompass[key] = {
+                    point = point or "CENTER",
+                    relativePoint = relativePoint or "CENTER",
+                    x = x or 0,
+                    y = y or 0,
+                }
+            end
         end
-    end)
-    dragLayer:SetScript("OnUpdate", function(self, elapsed)
-        if not wtDragging then return end
-        local curX, curY = GetCursorPosition()
-        local scale = self:GetEffectiveScale()
-        local dx = (curX - wtStartX) / scale
-        local dy = (curY - wtStartY) / scale
-        windTable:ClearAllPoints()
-        windTable:SetPoint("CENTER", UIParent, "CENTER", wtBaseX + dx, wtBaseY + dy)
-    end)
-    dragLayer:SetScript("OnMouseUp", function(self, button)
-        EndTableDrag()
-    end)
-    dragLayer:SetScript("OnDragStop", EndTableDrag)
-    windTable:Hide()
+
+        local function RegisterMovable(frame, key)
+            local point, _, relativePoint, x, y = frame:GetPoint(1)
+            LEM:AddFrame(frame, SavePos(key), {
+                baseFrameName = frame.editModeName,
+                name = frame.editModeName,
+                point = point or "CENTER",
+                relativePoint = relativePoint or "CENTER",
+                x = x or 0,
+                y = y or 0,
+                enableOverlayToggle = false,
+                showReset = true,
+            })
+            -- LEM doesn't set system.name; Blizzard EditMode needs it.
+            for _, child in ipairs({ frame:GetChildren() }) do
+                if child.system then
+                    child.system.name = frame.editModeName
+                    break
+                end
+            end
+        end
+
+        RegisterMovable(compassFrame, "compassPos")
+        RegisterMovable(btnRow, "btnPos")
+        RegisterMovable(windTable, "windTablePos")
+    end
 
     ApplyOptions()
+    -- Frames start hidden; Enable()/preview/Edit Mode show them.
+    btnRow:Hide()
+    windTable:Hide()
     compassFrame:Hide()
     return compassFrame
 end
@@ -634,3 +623,56 @@ function FacingCompass:ClearWindTable()
 end
 
 addon:RegisterModule("Common.FacingCompass", FacingCompass)
+
+-- ============================================================================
+-- Edit Mode integration: when the player opens Blizzard's Edit Mode the three
+-- draggable frames are force-shown (so they can be repositioned even if the
+-- compass is off), then restored to their normal visibility on exit.
+-- ============================================================================
+
+local wasShownForEditMode = false
+
+local function ShowForEditMode()
+    CreateCompassFrame()
+    wasShownForEditMode = true
+    -- Static display only: do NOT start the rotation loop (that would take
+    -- over the Ellesmere minimap via EnsureEllesmereCompatibility) — the
+    -- frames just need to be visible so they can be dragged in Edit Mode.
+    if compassFrame then
+        compassFrame:SetScript("OnUpdate", nil)
+        compassFrame:Show()
+    end
+    if windTable then windTable:Show() end
+    if btnRow then btnRow:Show() end
+end
+
+local function RestoreAfterEditMode()
+    if not wasShownForEditMode then return end
+    wasShownForEditMode = false
+    if FacingCompass.isEnabled then
+        if compassFrame then
+            compassFrame:SetScript("OnUpdate", OnCompassUpdate)
+            compassFrame:Show()
+        end
+        if windTable then windTable:Show() end
+        if btnRow then btnRow:SetShown(FacingCompass.clickEnabled) end
+    else
+        if compassFrame then
+            compassFrame:SetScript("OnUpdate", nil)
+            compassFrame:Hide()
+        end
+        if windTable then windTable:Hide() end
+        if btnRow then btnRow:Hide() end
+    end
+end
+
+function FacingCompass:OnInitialize()
+    if not LEM then return end
+    -- Pre-create and register all three frames with Edit Mode at login, so
+    -- they exist BEFORE Edit Mode opens. Registering lazily inside the LEM
+    -- "enter" callback is too late: Blizzard's Edit Mode has already scanned
+    -- its systems and the late frames are not shown/selectable.
+    CreateCompassFrame()
+    LEM:RegisterCallback("enter", ShowForEditMode)
+    LEM:RegisterCallback("exit", RestoreAfterEditMode)
+end

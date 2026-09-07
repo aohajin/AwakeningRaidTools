@@ -270,8 +270,22 @@ function CastBar:GetIconFrame()
 	return bar.Icon
 end
 
+-- Legacy raid feature: the bar (and its Edit Mode entry) must only exist when
+-- the LoadOnDemand legacy addon is loaded. The DB per-raid flags decide that,
+-- so mirror the LegacyLoader's check instead of unconditionally registering.
+local function AnyLegacyRaidEnabled()
+    local db = AwakeningRaidToolsDB
+    if not (db and db.LegacyRaidEnabled) then return false end
+    for _, key in ipairs({ "Voidspire", "Dreamrift", "MarchOfQuelDanas" }) do
+        if db.LegacyRaidEnabled[key] then return true end
+    end
+    return false
+end
+
 function CastBar:OnInitialize()
-	Create()
+    if AnyLegacyRaidEnabled() then
+        Create()
+    end
 end
 
 addon:RegisterModule("Common.CastBar", CastBar)
