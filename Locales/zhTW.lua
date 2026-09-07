@@ -56,6 +56,13 @@ addon.locales.zhTW = addon.locales.zhTW or {
     OPTIONS_SSZORAK_VIRULENCE_DIRECTION = "劇毒方向語音",
     OPTIONS_SSZORAK_VIRULENCE_DIRECTION_DESC =
     "獲得劇毒 debuff 時播放方向語音。斯索拉克的劇毒有兩種技能變體(1297707/1299899)，結束時會向不同方向發射毒液；由客戶端匹配光環後播放對應語音(Media/Sounds/go_left.ogg 或 go_right.ogg)。",
+    OPTIONS_SSZORAK_COMPASS = "朝向羅盤",
+    OPTIONS_SSZORAK_COMPASS_DESC =
+    "斯索拉克戰鬥中顯示螢幕中央的八方向標記羅盤(圓形環繞團隊標記 1-8)，隨你的朝向旋轉，作為毒液/放球機制的方向參考。",
+    OPTIONS_SSZORAK_COMPASS_PREVIEW = "預覽羅盤",
+    OPTIONS_SSZORAK_COMPASS_WINDCALL = "風向喊話",
+    OPTIONS_SSZORAK_COMPASS_WINDCALL_DESC =
+    "羅盤開啟時自動監聽團隊喊話 \"raid_target_N\" 並在對側標記脈衝。開啟本項後預覽模式額外顯示 {rt1}-{rt6} 發送按鈕，供團長廣播測試喊話。每次易傷窗口後 20 秒清空標記。",
     OPTIONS_VASHNIK_DIRECTION_CROSS = "方向瞄準線",
     OPTIONS_VASHNIK_DIRECTION_CROSS_DESC = "在螢幕中央顯示隨你朝向旋轉的十字瞄準線，輔助瘟疫浪潮/噴泉機制走位。",
     OPTIONS_VASHNIK_PREVIEW = "預覽瞄準線",

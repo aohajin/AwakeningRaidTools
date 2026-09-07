@@ -57,6 +57,13 @@ addon.locales.enUS = addon.locales.enUS or {
     OPTIONS_SSZORAK_VIRULENCE_DIRECTION = "Virulence direction voice",
     OPTIONS_SSZORAK_VIRULENCE_DIRECTION_DESC =
     "Play a direction voice when you gain Virulence. Sszorak's Virulence has two spell variants (1297707/1299899) that launch poison in different directions; the client matches the aura and plays the bound sound (Media/Sounds/go_left.ogg or go_right.ogg).",
+    OPTIONS_SSZORAK_COMPASS = "Facing compass",
+    OPTIONS_SSZORAK_COMPASS_DESC =
+    "Show a screen-centred 8-direction marker compass that rotates with your facing during Sszorak (raid-target icons 1-8 around the circle). Useful as a direction reference for venom/soak mechanics.",
+    OPTIONS_SSZORAK_COMPASS_PREVIEW = "Preview compass",
+    OPTIONS_SSZORAK_COMPASS_WINDCALL = "Wind outlet calls",
+    OPTIONS_SSZORAK_COMPASS_WINDCALL_DESC =
+    "When the compass is on, wind calls (\"raid_target_N\" in raid chat) pulse the opposite marker automatically. Enable this to also show the {rt1}-{rt6} send buttons (preview) so the leader can broadcast test calls. Marks clear 20s after each damage-amp window.",
     OPTIONS_VASHNIK_DIRECTION_CROSS = "Direction crosshair",
     OPTIONS_VASHNIK_DIRECTION_CROSS_DESC = "Show a screen-centered crosshair that rotates with your facing, to help line up during Plague Wave / fountain mechanics.",
     OPTIONS_VASHNIK_PREVIEW = "Preview crosshair",
