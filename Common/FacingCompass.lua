@@ -8,16 +8,14 @@ local LEM = LibStub and LibStub("LibEQOLEditMode-1.0")
 -- same source Vashnik's crosshair uses). Directions are labelled with the
 -- stock raid-target icons.
 --
--- Sszorak wind-call integration: markers 1..6 can be clicked (when clicks are
--- enabled) and the caller (boss module) decides what to broadcast. Received
--- calls ("raid_target_N") highlight the OPPOSITE marker with a pulsing ring;
--- an order label (1/2/3) is drawn fixed at the disc centre under the arrow
--- (FontStrings cannot rotate, so the order text stays upright at the centre).
+-- Sszorak wind-call integration: the raid leader announces the wind outlet
+-- with a chat macro (/raid raid_target_N); every client with the compass on
+-- highlights the OPPOSITE marker (soak position) with a pulsing ring. An
+-- order table (1/2/3 + opposite icons) sits above the disc.
 --
 -- Public API (used by Raids/.../Sszorak.lua):
 --   Enable(strata?) / Disable() / IsActive()
---   SetClicksEnabled(bool) / SetOnMarkerClicked(fn(marker))
---   ShowOppositeCall(marker, order)   -- pulse the marker opposite `marker`
+--   ShowCalls(calls)                  -- pulse the OPPOSITE of each call
 --   SetOrderText(text)                -- fixed centre text under the arrow
 --   ClearCalls()                      -- hide all pulses + order text
 -- ============================================================================
@@ -25,8 +23,6 @@ local LEM = LibStub and LibStub("LibEQOLEditMode-1.0")
 local FacingCompass = {
     name = "FacingCompass",
     isEnabled = false,
-    clickEnabled = false,
-    onMarkerClicked = nil, -- function(markerNumber)
 }
 
 local MARKER_TEX = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_"
@@ -37,8 +33,6 @@ local RING_RED_TEX = "Interface\\AddOns\\" .. (addon.name or "AwakeningRaidTools
 local compassFrame
 local markers = {}
 local pulseLayers = {} -- [slot] pulse ring layer (rotates with the disc)
-local clickButtons = {} -- [marker] click buttons 1..6 (wind-call sender)
-local btnRow -- container for the click buttons (repositionable via Edit Mode)
 local windTable -- order table (序号 1 2 3 / 对侧 rt 图标; Edit Mode repositionable)
 local windTableRow1 = {} -- [slot] order label texture/number
 local windTableRow2 = {} -- [slot] opposite-marker icon texture
@@ -241,12 +235,12 @@ local function ApplyMarkerLayout()
             if HIDDEN_SLOTS[slot] then
                 pulse:Hide()
             else
-                -- Ring larger than the marker icon (1.4x window) so the red
-                -- outline clearly surrounds the icon.
+                -- Keep the pulse geometry in sync, but do NOT show it here:
+                -- visibility is owned by ShowCalls/ClearCalls (only called
+                -- markers may pulse). Showing here lit up every slot.
                 local geo = SlotGeometry(slot)
                 geo.markerHalf = geo.markerHalf * 1.4
                 PositionLayerAtSlot(pulse, geo)
-                pulse:Show()
             end
         end
     end
@@ -338,47 +332,6 @@ local function CreateCompassFrame()
         pulse:Hide()
     end
 
-    -- Click buttons (markers 1..6, raid icons) in a row anchored under the
-    -- compass; shown only when wind-call sending is enabled. The row is its
-    -- own UIParent frame; repositioned via Edit Mode (LEM), position stored
-    -- to DB.FacingCompass.btnPos.
-    btnRow = _G.CreateFrame("Frame", nil, UIParent)
-    btnRow:SetFrameStrata("DIALOG")
-    btnRow:SetFrameLevel(200)
-    btnRow:SetSize(6 * 38, 40)
-    -- Anchor to UIParent (absolute), positioned under the compass unless the
-    -- user repositioned it in Edit Mode before (saved btnPos).
-    local savedPos = cfg("btnPos")
-    if type(savedPos) == "table" and savedPos.x then
-        btnRow:SetPoint(savedPos.point or "CENTER", UIParent,
-            savedPos.relativePoint or "CENTER", savedPos.x, savedPos.y)
-    else
-        -- Initial: directly under the (screen-centred) compass.
-        btnRow:SetPoint("CENTER", UIParent, "CENTER", 0, -(cfg("size") * 0.5 + 34))
-    end
-    btnRow:EnableMouse(false)
-
-    for i = 1, 6 do
-        local btn = _G.CreateFrame("Button", nil, btnRow)
-        btn:SetSize(34, 34)
-        btn:SetPoint("CENTER", btnRow, "CENTER", (i - 3.5) * 38, 0)
-        local icon = btn:CreateTexture(nil, "ARTWORK")
-        icon:SetAllPoints(btn)
-        icon:SetTexture(MarkerTexture(i))
-        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) -- trim raid-icon ring padding
-        local marker = i -- capture
-        -- Left click sends the call.
-        btn:RegisterForClicks("LeftButtonUp")
-        btn:SetScript("OnClick", function(self, button)
-            if button == "LeftButton" then
-                if FacingCompass.onMarkerClicked then
-                    FacingCompass.onMarkerClicked(marker)
-                end
-            end
-        end)
-        clickButtons[i] = btn
-    end
-
     -- Wind order table: two rows (order 1..3 / opposite marker icons). Shown
     -- with the compass during combat/preview; repositioned via Edit Mode.
     windTable = _G.CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
@@ -435,7 +388,6 @@ local function CreateCompassFrame()
     -- final point/x/y through our callback, which persists per-frame keys.
     if LEM then
         compassFrame.editModeName = "Awakening Raid Tools: Compass"
-        btnRow.editModeName = "Awakening Raid Tools: Wind call buttons"
         windTable.editModeName = "Awakening Raid Tools: Wind order table"
 
         local function SavePos(key)
@@ -473,13 +425,11 @@ local function CreateCompassFrame()
         end
 
         RegisterMovable(compassFrame, "compassPos")
-        RegisterMovable(btnRow, "btnPos")
         RegisterMovable(windTable, "windTablePos")
     end
 
     ApplyOptions()
     -- Frames start hidden; Enable()/preview/Edit Mode show them.
-    btnRow:Hide()
     windTable:Hide()
     compassFrame:Hide()
     return compassFrame
@@ -502,11 +452,7 @@ function FacingCompass:Enable(strata)
     if strata then
         compassFrame:SetFrameStrata(strata)
     end
-    -- Combat Enable must not leave preview click buttons visible; the caller
-    -- (Sszorak preview or battle with sender on) enables clicks explicitly.
-    self.clickEnabled = false
-    if btnRow then btnRow:Hide() end
-    -- Fresh start: no marker is called until a broadcast arrives.
+    -- Fresh start: no marker is called until a call arrives.
     self:ClearCalls()
     if windTable then windTable:Show() end
     rotationElapsed = 0
@@ -518,8 +464,6 @@ end
 function FacingCompass:Disable()
     if not self.isEnabled then return end
     self.isEnabled = false
-    self.clickEnabled = false
-    if btnRow then btnRow:Hide() end
     if windTable then windTable:Hide() end
     if compassFrame then
         compassFrame:SetScript("OnUpdate", nil)
@@ -530,17 +474,6 @@ end
 
 function FacingCompass:IsActive()
     return self.isEnabled
-end
-
-function FacingCompass:SetClicksEnabled(enabled)
-    self.clickEnabled = enabled and true or false
-    if btnRow then
-        btnRow:SetShown(self.clickEnabled)
-    end
-end
-
-function FacingCompass:SetOnMarkerClicked(fn)
-    self.onMarkerClicked = fn
 end
 
 -- Pulse the marker OPPOSITE the given called marker. `order` is the 1..3
@@ -625,7 +558,7 @@ end
 addon:RegisterModule("Common.FacingCompass", FacingCompass)
 
 -- ============================================================================
--- Edit Mode integration: when the player opens Blizzard's Edit Mode the three
+-- Edit Mode integration: when the player opens Blizzard's Edit Mode the two
 -- draggable frames are force-shown (so they can be repositioned even if the
 -- compass is off), then restored to their normal visibility on exit.
 -- ============================================================================
@@ -643,7 +576,6 @@ local function ShowForEditMode()
         compassFrame:Show()
     end
     if windTable then windTable:Show() end
-    if btnRow then btnRow:Show() end
 end
 
 local function RestoreAfterEditMode()
@@ -655,20 +587,18 @@ local function RestoreAfterEditMode()
             compassFrame:Show()
         end
         if windTable then windTable:Show() end
-        if btnRow then btnRow:SetShown(FacingCompass.clickEnabled) end
     else
         if compassFrame then
             compassFrame:SetScript("OnUpdate", nil)
             compassFrame:Hide()
         end
         if windTable then windTable:Hide() end
-        if btnRow then btnRow:Hide() end
     end
 end
 
 function FacingCompass:OnInitialize()
     if not LEM then return end
-    -- Pre-create and register all three frames with Edit Mode at login, so
+    -- Pre-create and register both movable frames with Edit Mode at login, so
     -- they exist BEFORE Edit Mode opens. Registering lazily inside the LEM
     -- "enter" callback is too late: Blizzard's Edit Mode has already scanned
     -- its systems and the late frames are not shown/selectable.
