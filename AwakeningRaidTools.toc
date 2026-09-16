@@ -21,7 +21,7 @@ Libs/LibSharedMedia-3.0/lib.xml
 Libs/LibEQOL-1.0/LibEQOLEditMode.lua
 
 Common/PhaseTracker.lua
-Common/FacingCompass.lua
+Common/WindCall.lua
 Common/CastBar.lua
 Common/Counter.lua
 Common/NameplateCastMarker.lua

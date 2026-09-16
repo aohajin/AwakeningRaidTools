@@ -55,18 +55,16 @@ addon.locales.enUS = addon.locales.enUS or {
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY = "Enable interrupt display",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY_DESC = "Show interrupt markers on enemy nameplates during the encounter.",
     OPTIONS_SSZORAK_VIRULENCE_DIRECTION = "Virulence direction voice",
+    OPTIONS_SSZORAK_WINDCALL_RECEIVE = "Wind-call strip (receive)",
+    OPTIONS_SSZORAK_WINDCALL_RECEIVE_DESC =
+    "Shows incoming wind-outlet calls (/raid wN, N=1-6) as an icon strip; each entry shows the OPPOSITE marker (soak position). Works even while chat text is secret in Mythic.",
+    OPTIONS_SSZORAK_WINDCALL_PREVIEW = "Preview wind call (strip + buttons)",
+    OPTIONS_SSZORAK_WINDCALL_SEND = "Wind-call buttons (send)",
+    OPTIONS_SSZORAK_WINDCALL_SEND_DESC =
+    "Shows 6 buttons (rt1-rt6) that send /raid wN for you (raid leader). Independent of the strip.",
     OPTIONS_SSZORAK_VIRULENCE_DIRECTION_DESC =
     "Play a direction voice when you gain Virulence. Sszorak's Virulence has two spell variants (1297707/1299899) that launch poison in different directions; the client matches the aura and plays the bound sound (Media/Sounds/go_left.ogg or go_right.ogg).",
-    OPTIONS_SSZORAK_COMPASS = "Facing compass",
-    OPTIONS_SSZORAK_COMPASS_DESC =
-    "Show a screen-centred 8-direction marker compass that rotates with your facing during Sszorak. The raid leader announces the wind outlet with a chat macro (/raid raid_target_N, N=1-6); the compass pulses the OPPOSITE marker (soak position).",
-    OPTIONS_SSZORAK_COMPASS_PREVIEW = "Preview compass",
-    OPTIONS_SSZORAK_COMPASS_EDIT_MODE = "Adjust positions in Edit Mode",
-    OPTIONS_SSZORAK_COMPASS_EDIT_MODE_DESC =
-    "Opens Blizzard's Edit Mode so you can drag the compass and the order table to any screen position.",
-    OPTIONS_VASHNIK_DIRECTION_CROSS = "Direction crosshair",
-    OPTIONS_VASHNIK_DIRECTION_CROSS_DESC = "Show a screen-centered crosshair that rotates with your facing, to help line up during Plague Wave / fountain mechanics.",
-    OPTIONS_VASHNIK_PREVIEW = "Preview crosshair",
+    OPTIONS_SSZORAK_EDIT_MODE = "Adjust positions in Edit Mode",
     OPTIONS_VASHNIK_PARTICLE_DENSITY = "Disable particle effects (whole fight)",
     OPTIONS_VASHNIK_PARTICLE_DENSITY_DESC = "Set particle density to the minimum for the entire encounter to improve FPS; restored automatically at encounter end.",
     OPTIONS_FOCUS_INTERRUPT_COUNTER = "Show focus interrupt counter",

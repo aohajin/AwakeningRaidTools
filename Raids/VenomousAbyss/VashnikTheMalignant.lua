@@ -12,31 +12,10 @@ local Boss = {
     journalEncounterId = 2882, -- Encounter Journal ID (EJ_GetEncounterInfo)
     mythicOnly = true,
     features = {
-        directionCross = {
-            type = "toggle",
-            default = true,
-            labelKey = "OPTIONS_VASHNIK_DIRECTION_CROSS",
-            descKey  = "OPTIONS_VASHNIK_DIRECTION_CROSS_DESC",
-            subFeatures = {
-                {
-                    type = "button",
-                    key = "preview",
-                    labelKey = "OPTIONS_VASHNIK_PREVIEW",
-                    onClick = function()
-                        -- The crosshair preview renders at FULLSCREEN_DIALOG
-                        -- strata (above the DIALOG settings panel), so the
-                        -- panel can stay open. Never call SettingsPanel:Close()
-                        -- from addon code: it walks the ESC path and trips the
-                        -- protected SpellStopCasting() (ADDON_ACTION_FORBIDDEN).
-                        local addon = _G.AwakeningRaidTools
-                        local boss = addon and addon.modules["Raids.VenomousAbyss.VashnikTheMalignant"]
-                        if boss then
-                            boss:TogglePreview()
-                        end
-                    end,
-                },
-            },
-        },
+        -- directionCross (aim line) was removed: it depended on the minimap
+        -- rotation API (MinimapCompassTexture:GetRotation / rotateMinimap),
+        -- which Blizzard no longer permits. Do not re-add until an
+        -- alternative orientation source exists.
         particleDensity = {
             type = "toggle",
             default = false,
@@ -291,25 +270,20 @@ end
 
 -- ============================================================================
 
--- Options "preview" button: show the crosshair outside any encounter (same
--- effect as the removed always-show debug mode). Toggling again hides it.
+-- Options "preview" button: DISABLED along with directionCross (the aim line
+-- needs the minimap-rotation API, no longer permitted). Kept as a no-op so a
+-- stale macro/option cannot bring it back.
 function Boss:TogglePreview()
-    self._previewing = not self._previewing
-    addon:Dbg(self.name, ("preview -> %s"):format(tostring(self._previewing)))
-    if self._previewing then
-        ShowOverlay("FULLSCREEN_DIALOG")
-    else
-        HideOverlay()
-    end
-    return self._previewing
+    return
 end
 
 function Boss:OnMythicEncounterStart(encounterID, encounterName, difficultyID, groupSize)
     self.isActive = true
     addon:Dbg(self.name, "start")
-    if IsBossFeatureEnabled("directionCross") then
-        ShowOverlay("HIGH")
-    end
+    -- directionCross (aim line) DISABLED: it needed the minimap-rotation API,
+    -- which is no longer allowed. Keep the code for a future alternative but
+    -- never show the overlay.
+    -- if IsBossFeatureEnabled("directionCross") then ShowOverlay("HIGH") end
     if IsBossFeatureEnabled("particleDensity") then
         SaveParticleCVars()
         DisableParticleCVars()

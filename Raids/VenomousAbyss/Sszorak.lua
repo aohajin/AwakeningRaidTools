@@ -18,27 +18,40 @@ local Boss = {
             labelKey = "OPTIONS_SSZORAK_VIRULENCE_DIRECTION",
             descKey  = "OPTIONS_SSZORAK_VIRULENCE_DIRECTION_DESC",
         },
-        compass = {
+        -- Wind-outlet call strip (DFT WindOctagon style). The compass DISC is
+        -- gone (minimap-rotation API no longer permitted), but this strip only
+        -- needs the chat listener + C-API icon rendering, so it still works.
+        -- Receive (strip) and send (button panel) toggle independently.
+        windCallReceive = {
             type = "toggle",
             default = false,
-            labelKey = "OPTIONS_SSZORAK_COMPASS",
-            descKey  = "OPTIONS_SSZORAK_COMPASS_DESC",
+            labelKey = "OPTIONS_SSZORAK_WINDCALL_RECEIVE",
+            descKey  = "OPTIONS_SSZORAK_WINDCALL_RECEIVE_DESC",
+        },
+        windCallSend = {
+            type = "toggle",
+            default = false,
+            labelKey = "OPTIONS_SSZORAK_WINDCALL_SEND",
+            descKey  = "OPTIONS_SSZORAK_WINDCALL_SEND_DESC",
+            -- Preview + Edit Mode live here as one group. They are enabled
+            -- (not greyed) only while receive and/or send is on; preview shows
+            -- exactly what is ticked. enabledWhen is attached below.
             subFeatures = {
                 {
                     type = "button",
                     key = "preview",
-                    labelKey = "OPTIONS_SSZORAK_COMPASS_PREVIEW",
+                    labelKey = "OPTIONS_SSZORAK_WINDCALL_PREVIEW",
                     onClick = function()
                         local boss = addon.modules["Raids.VenomousAbyss.Sszorak"]
                         if boss then
-                            boss:ToggleCompassPreview()
+                            boss:ToggleReceivePreview()
                         end
                     end,
                 },
                 {
                     type = "button",
                     key = "editMode",
-                    labelKey = "OPTIONS_SSZORAK_COMPASS_EDIT_MODE",
+                    labelKey = "OPTIONS_SSZORAK_EDIT_MODE",
                     onClick = function()
                         if EditModeManagerFrame then
                             ShowUIPanel(EditModeManagerFrame)
@@ -61,6 +74,20 @@ local function IsFeatureEnabled(key)
         if val ~= nil then return val end
     end
     return default
+end
+
+-- Preview / Edit Mode buttons (under the send toggle) are only enabled while
+-- at least one of the two wind-call toggles is on; otherwise they grey out.
+do
+    local sendDef = Boss.features and Boss.features.windCallSend
+    if sendDef and sendDef.subFeatures then
+        for _, subDef in ipairs(sendDef.subFeatures) do
+            subDef.enabledWhen = function()
+                return IsFeatureEnabled("windCallReceive")
+                    or IsFeatureEnabled("windCallSend")
+            end
+        end
+    end
 end
 
 -- ============================================================================
@@ -235,71 +262,24 @@ end
 local WIND_AMP_TIMES = { 100, 227.1, 354.2 } -- mythic Dig In (damage amp) times
 local WIND_CLEAR_AFTER = 20
 
--- Marker opposite another (rt1<->4, rt2<->5, rt3<->6).
-local function OppositeMarker(marker)
-    return ((marker + 2) % 6) + 1
-end
-
 local chatFrame = nil
-local recentCalls = {} -- ordered list of marker numbers (1..6), newest last
 local ampClearTimers = {}
 
--- Parse a raid chat message; returns marker number 1..6 or nil.
-local function ParseWindCall(message)
-    if type(message) ~= "string" then return nil end
-    -- During competitive/RWF periods chat message text is a SECRET value:
-    -- Lua string ops (match/tonumber) on it are forbidden and would error.
-    -- We cannot parse it, so skip (protection is client-side by design).
-    if issecretvalue and issecretvalue(message) then return nil end
-    -- Strict: whole trimmed message must be raid_target_N, N in 1..6
-    -- (pattern also rejects leading zeros like "raid_target_01").
-    local n = tonumber(message:match("^%s*raid_target_([1-6])%s*$"))
-    return n
-end
+-- Wind calls are shown NSRT-style: each incoming chat message is appended to
+-- the compass call strip, and the message text is rendered straight into a
+-- C API (SetFormattedText) — we never read/parse it, so it keeps working even
+-- while chat messages are secret during competitive lockdown.
 
-local function RefreshPulses()
-    local compass = addon.modules["Common.FacingCompass"]
-    if not compass then return end
-    -- Opposite targets in call order (表: 1 2 3 / 对侧 rt).
-    local oppositeList = {}
-    for _, marker in ipairs(recentCalls) do
-        oppositeList[#oppositeList + 1] = OppositeMarker(marker)
+local function OnWindCall(text)
+    local compass = addon.modules["Common.WindCall"]
+    if compass and compass.AddWindCall then
+        compass:AddWindCall(text)
     end
-    if compass.ShowWindTable then
-        compass:ShowWindTable(oppositeList)
-    end
-    -- Keep the on-disc pulses too (visual on the compass itself).
-    if compass.ShowCalls then
-        local calls = {}
-        for _, marker in ipairs(recentCalls) do
-            calls[#calls + 1] = { marker = marker }
-        end
-        compass:ShowCalls(calls)
-    end
-end
-
-local function OnWindCall(marker)
-    -- Dedupe: remove existing entry, append as newest.
-    for i = #recentCalls, 1, -1 do
-        if recentCalls[i] == marker then
-            table.remove(recentCalls, i)
-            break
-        end
-    end
-    recentCalls[#recentCalls + 1] = marker
-    while #recentCalls > 3 do
-        table.remove(recentCalls, 1) -- drop oldest
-    end
-    addon:Dbg(Boss.name, ("wind call: marker=%d recent=%s"):format(
-        marker, table.concat(recentCalls, ",")))
-    RefreshPulses()
 end
 
 local function ClearAllCalls()
-    wipe(recentCalls)
-    local compass = addon.modules["Common.FacingCompass"]
-    if compass and compass.ClearCalls then compass:ClearCalls() end
-    if compass and compass.SetOrderText then compass:SetOrderText("") end
+    local compass = addon.modules["Common.WindCall"]
+    if compass and compass.ClearWindCalls then compass:ClearWindCalls() end
 end
 
 local function ChatHandler(self, event, message, sender, _, _, _, _, _, _, _, _, _, guid)
@@ -314,17 +294,30 @@ local function ChatHandler(self, event, message, sender, _, _, _, _, _, _, _, _,
     end
     local boss = addon.modules["Raids.VenomousAbyss.Sszorak"]
     -- Active in combat OR in compass wind-call preview.
-    if not boss or not (boss.isActive or boss._windPreview) then return end
+    if not boss or not (boss.isActive or boss._windPreview) then
+        addon:Dbg(Boss.name, ("chat %s ignored: boss inactive (isActive=%s preview=%s)"):format(
+            event, tostring(boss and boss.isActive), tostring(boss and boss._windPreview)))
+        return
+    end
     -- Listening is the compass's default behaviour (no windCall toggle needed):
     -- any client with the compass feature on hears wind calls.
-    local compass = addon.modules["Common.FacingCompass"]
-    if not compass or not compass:IsActive() then return end
-    local marker = ParseWindCall(message)
-    if marker then
-        addon:Dbg(Boss.name, ("chat %s from %s: %s -> marker %d"):format(
-            event, tostring(sender), tostring(message), marker))
-        OnWindCall(marker)
+    local compass = addon.modules["Common.WindCall"]
+    if not compass or not compass:IsReceiveEnabled() then
+        addon:Dbg(Boss.name, ("chat %s ignored: compass inactive"):format(event))
+        return
     end
+    -- NSRT-style: do NOT parse the text (it may be secret); hand it straight
+    -- to the compass, which renders it into a C API. Guard every tostring with
+    -- issecretvalue: sender can be secret too during lockdown. Dbg no-ops
+    -- unless debug logging is on, but the guard keeps it safe either way.
+    local function safeStr(v)
+        if v == nil then return "nil" end
+        if issecretvalue and issecretvalue(v) then return "<secret>" end
+        return tostring(v)
+    end
+    addon:Dbg(Boss.name, ("chat %s from %s -> call (secret=%s)"):format(
+        safeStr(event), safeStr(sender), safeStr(issecretvalue and issecretvalue(message))))
+    OnWindCall(message)
 end
 
 -- Register the raid chat listener at login (out of combat; RegisterEvent is
@@ -333,23 +326,26 @@ end
 -- and covers the normal case; the handler checks boss.isActive anyway.
 local function StartWindListening()
     if chatFrame then return chatFrame end
-    if InCombatLockdown() then
-        addon:Dbg(Boss.name, "in combat at init; chat listener deferred to next login")
-        return nil
-    end
     chatFrame = CreateFrame("Frame")
-    chatFrame:RegisterEvent("CHAT_MSG_RAID")
-    chatFrame:RegisterEvent("CHAT_MSG_RAID_LEADER")
-    chatFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-    chatFrame:SetScript("OnEvent", ChatHandler)
+    -- Only channels a leader would call on (raid / raid-warning / instance),
+    -- plus /say so the feature can be tested without a group.
+    addon:RegisterSafeEvents(chatFrame, {
+        "CHAT_MSG_RAID",
+        "CHAT_MSG_RAID_LEADER",
+        "CHAT_MSG_RAID_WARNING",
+        "CHAT_MSG_INSTANCE_CHAT",
+        "CHAT_MSG_INSTANCE_CHAT_LEADER",
+        "CHAT_MSG_SAY",
+        "PLAYER_REGEN_ENABLED",
+    }, ChatHandler)
     return chatFrame
 end
 
 -- Wind calls are announced by the raid LEADER via a chat macro, e.g.
---   /raid raid_target_6
--- The addon only listens (no in-addon sender): everyone with the compass on
--- highlights the OPPOSITE marker. (During chat-messaging lockdown the message
--- text is secret and cannot be parsed; the listener no-ops then.)
+--   /raid w6      ("w" + marker number 1..6)
+-- The addon only listens (the send panel is optional): every client with the
+-- receive toggle on appends the call to its strip. The text is never parsed
+-- (rendered into a C API), so it also works while chat messages are secret.
 
 -- Schedule clears at each damage-amp + clear-after (relative to encounter
 -- start: 100/227.1/354.2 + 20s).
@@ -384,27 +380,37 @@ function Boss:OnInitialize()
     RegisterAll()
 end
 
-function Boss:ToggleCompassPreview()
+-- Preview the receive (call strip) / send (button panel) outside an encounter.
+local function PreviewGuard()
     if InCombatLockdown() then
-        print("ART: cannot preview the compass in combat")
-        return
+        print("ART: cannot preview in combat")
+        return false
     end
-    local compass = addon.modules["Common.FacingCompass"]
-    if not compass then return end
-    if compass:IsActive() then
+    return true
+end
+
+-- Single preview toggle for the wind-call feature. Shows exactly what is
+-- ticked: receive and/or send. If neither is ticked the button is greyed out
+-- (handled by the options predicate), so this is only reachable when on.
+function Boss:ToggleReceivePreview()
+    if not PreviewGuard() then return end
+    local windCall = addon.modules["Common.WindCall"]
+    if not windCall then return end
+    if windCall:IsReceiveEnabled() or windCall:IsSendEnabled() then
+        windCall:SetReceiveEnabled(false)
+        windCall:SetSendEnabled(false)
         self._windPreview = nil
-        compass:Disable()
-        print("ART: facing compass preview off")
+        print("ART: wind-call preview off")
     else
-        -- FULLSCREEN_DIALOG strata so the preview renders above the DIALOG
-        -- settings panel (the panel stays open while previewing).
-        compass:Enable("FULLSCREEN_DIALOG")
-        -- Preview simulates an Sszorak encounter: chat calls mark markers.
-        -- Test with a macro, e.g. /raid raid_target_6 (solo: /say).
+        if IsFeatureEnabled("windCallReceive") then
+            windCall:SetReceiveEnabled(true)
+        end
+        if IsFeatureEnabled("windCallSend") then
+            windCall:SetSendEnabled(true)
+        end
         self._windPreview = true
-        wipe(recentCalls)
         ClearAllCalls()
-        print("ART: facing compass preview on (turn to see markers rotate)")
+        print("ART: wind-call preview on (test with /raid w6 or /s w6)")
     end
 end
 
@@ -422,15 +428,19 @@ function Boss:OnMythicEncounterStart(encounterID, encounterName, difficultyID, g
             RegisterAll()
         end
     end
-    -- Facing compass (8-direction marker compass rotating with the player).
-    if IsFeatureEnabled("compass") then
-        local compass = addon.modules["Common.FacingCompass"]
-        if compass and compass.Enable then
-            compass:Enable()
-            -- Wind-call pulses: only listen/show while compass is on. Calls
-            -- arrive from the leader's chat macro (/raid raid_target_N).
-            wipe(recentCalls)
+    -- Wind-outlet call strip (DFT style). Needs no minimap rotation; only the
+    -- chat listener + C-API icon rendering.
+    -- Wind-outlet calls: receive (strip) and send (button panel) toggle
+    -- independently. Neither needs minimap rotation.
+    local compass = addon.modules["Common.WindCall"]
+    if compass then
+        if IsFeatureEnabled("windCallReceive") then
+            compass:SetReceiveEnabled(true)
+            ClearAllCalls()
             ScheduleAmpClears()
+        end
+        if IsFeatureEnabled("windCallSend") then
+            compass:SetSendEnabled(true)
         end
     end
     -- Phase tracking: uncomment and fill in transitions once timings are known.
@@ -456,9 +466,11 @@ function Boss:OnMythicEncounterEnd(encounterID, encounterName, difficultyID, gro
         if timer.Cancel then timer:Cancel() end
     end
     wipe(ampClearTimers)
-    local compass = addon.modules["Common.FacingCompass"]
-    if compass and compass.Disable then
-        compass:Disable()
+    local compass = addon.modules["Common.WindCall"]
+    if compass and compass.SetReceiveEnabled then
+        self._windPreview = nil
+        compass:SetReceiveEnabled(false)
+        compass:SetSendEnabled(false)
     end
 end
 
@@ -542,13 +554,13 @@ function Boss:DiagnoseVoice()
 end
 
 -- ============================================================================
--- Wind-call system (compass sub-feature): the leader announces the wind
--- outlet marker ("raid_target_N", N=1..6) on /raid; every client with the
--- compass on highlights the OPPOSITE marker (go there for the debuff soak).
---   * Strict match: the whole message must equal "raid_target_N".
---   * Recent 3: dedupe (re-call moves to newest), drop oldest beyond 3.
---   * Clear: at difficulty-amp (Dig In) timestamps +20s (relative to combat).
---   * Broadcast: only when clicks are enabled (preview) — clicking a marker
---     sends "/raid raid_target_N". Combat does not click; it only listens.
+-- Wind-call system (compass sub-feature), NSRT-style: the leader announces
+-- each wind outlet with a chat macro (e.g. "/raid w6"); every client with the
+-- compass on appends it to the call strip (order 1..4 + raid-target icon).
+--   * No parsing: the chat text is handed straight to a C API, so it works
+--     even while messages are secret during competitive (chat) lockdown.
+--   * Clear: at difficulty-amp (Dig In) timestamps +20s (relative to combat)
+--     and on leaving combat.
+--   * Listening only (no in-addon sender).
 
 addon:RegisterModule("Raids.VenomousAbyss.Sszorak", Boss)

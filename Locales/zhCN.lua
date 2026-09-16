@@ -54,18 +54,16 @@ addon.locales.zhCN = addon.locales.zhCN or {
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY = "启用打断显示",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY_DESC = "在战斗中于敌方姓名板上显示打断标记。",
     OPTIONS_SSZORAK_VIRULENCE_DIRECTION = "剧毒方向语音",
+    OPTIONS_SSZORAK_WINDCALL_RECEIVE = "报风口喊话条(接收)",
+    OPTIONS_SSZORAK_WINDCALL_RECEIVE_DESC =
+    "显示收到的报风口喊话(/raid wN，N=1-6)：每条显示对侧标记(放点名位置)。史诗难度下聊天文本为 secret 时仍可用。",
+    OPTIONS_SSZORAK_WINDCALL_PREVIEW = "预览报风口(条+按钮)",
+    OPTIONS_SSZORAK_WINDCALL_SEND = "报风口按钮(发送)",
+    OPTIONS_SSZORAK_WINDCALL_SEND_DESC =
+    "显示 6 个按钮(rt1-rt6),点击即发送 /raid wN(供团长使用)。与接收条相互独立。",
     OPTIONS_SSZORAK_VIRULENCE_DIRECTION_DESC =
     "获得剧毒 debuff 时播放方向语音。斯索拉克的剧毒有两种技能变体(1297707/1299899)，结束时会向不同方向发射毒液；由客户端匹配光环后播放对应语音(Media/Sounds/go_left.ogg 或 go_right.ogg)。",
-    OPTIONS_SSZORAK_COMPASS = "朝向罗盘",
-    OPTIONS_SSZORAK_COMPASS_DESC =
-    "斯索拉克战斗中显示屏幕中央的八方向标记罗盘，随你的朝向旋转。团长用宏喊话出风口(/raid raid_target_N，N=1-6)，罗盘脉冲对侧标记(放点名位置)。",
-    OPTIONS_SSZORAK_COMPASS_PREVIEW = "预览罗盘",
-    OPTIONS_SSZORAK_COMPASS_EDIT_MODE = "在编辑模式中调整位置",
-    OPTIONS_SSZORAK_COMPASS_EDIT_MODE_DESC =
-    "打开暴雪编辑模式,可拖动罗盘与序号表到任意屏幕位置。",
-    OPTIONS_VASHNIK_DIRECTION_CROSS = "方向瞄准线",
-    OPTIONS_VASHNIK_DIRECTION_CROSS_DESC = "在屏幕中央显示随你朝向旋转的十字瞄准线，辅助瘟疫浪潮/喷泉机制走位。",
-    OPTIONS_VASHNIK_PREVIEW = "预览瞄准线",
+    OPTIONS_SSZORAK_EDIT_MODE = "在编辑模式中调整位置",
     OPTIONS_VASHNIK_PARTICLE_DENSITY = "关闭粒子特效（整个战斗）",
     OPTIONS_VASHNIK_PARTICLE_DENSITY_DESC = "整个战斗将粒子密度降至最低以提高帧数，战斗结束自动恢复。",
     OPTIONS_FOCUS_INTERRUPT_COUNTER = "显示焦点打断计数",

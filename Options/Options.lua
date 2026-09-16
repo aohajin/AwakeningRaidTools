@@ -193,11 +193,13 @@ local function AddFeatureCheckbox(category, layout, encounterId, featureName, fe
                     subTooltip or "",
                     true -- addSearchTags (asserted non-nil by Blizzard)
                 )
-                -- Show the button only while the parent feature is enabled
-                -- and any declared dependsOn sibling toggle is on.
+                -- Enable (not hide) the button only while the parent feature
+                -- is enabled and any declared dependsOn sibling toggle is on.
+                -- subDef.enabledWhen overrides the default predicate (used by
+                -- Sszorak so preview/Edit Mode follow receive-or-send).
                 if btnInit and btnInit.SetParentInitializer then
                     local depKey = subDef.dependsOn
-                    btnInit:SetParentInitializer(parentInit, function()
+                    local predicate = subDef.enabledWhen or function()
                         if not GetFeatureEnabled(encounterId, featureName, default) then
                             return false
                         end
@@ -205,7 +207,8 @@ local function AddFeatureCheckbox(category, layout, encounterId, featureName, fe
                             return GetSubFeatureEnabled(encounterId, featureName, depKey, false)
                         end
                         return true
-                    end)
+                    end
+                    btnInit:SetParentInitializer(parentInit, predicate)
                 end
                 layout:AddInitializer(btnInit)
             else -- toggle sub-feature
