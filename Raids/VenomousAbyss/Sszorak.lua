@@ -503,7 +503,10 @@ function Boss:OnMythicEncounterEnd(encounterID, encounterName, difficultyID, gro
     self.startTime = nil
     addon:Dbg(self.name, "end")
     CancelRegenRetry()
-    UnregisterAll()
+    -- Do NOT UnregisterAll() here. AddAuraSound carries HasRestrictions, so the
+    -- NEXT encounter start happens while restricted (in combat) and could not
+    -- re-register — which silently killed the voices after the first pull.
+    -- The binding is inert while the aura is absent, so keep it for the session.
     ClearAllCalls()
     for _, timer in ipairs(ampClearTimers) do
         if timer.Cancel then timer:Cancel() end
