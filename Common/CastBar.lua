@@ -23,20 +23,28 @@ local DEFAULT_CONFIG = {
 	counterScale = 1,
 }
 
+-- Cast bar position/appearance config. It used to live under the legacy
+-- MidnightFalls encounter (3183); it is now global so any boss (incl. the
+-- main-addon Coiled Altar) can share the single bar. The old value is migrated
+-- on first access.
+local CONFIG_KEY = "castBar"
+
 local function GetConfig()
 	local db = AwakeningRaidToolsDB
-	if db and db.encounters and db.encounters[3183] and db.encounters[3183].castBar then
-		return db.encounters[3183].castBar
+	if not db then return DEFAULT_CONFIG end
+	if not db[CONFIG_KEY] and db.encounters and db.encounters[3183]
+		and db.encounters[3183].castBar then
+		db[CONFIG_KEY] = db.encounters[3183].castBar
+		db.encounters[3183].castBar = nil
 	end
-	return DEFAULT_CONFIG
+	return db[CONFIG_KEY] or DEFAULT_CONFIG
 end
 
 local function SaveConfig(key, value)
 	local db = AwakeningRaidToolsDB
-	if not db.encounters then db.encounters = {} end
-	if not db.encounters[3183] then db.encounters[3183] = {} end
-	if not db.encounters[3183].castBar then db.encounters[3183].castBar = {} end
-	db.encounters[3183].castBar[key] = value
+	if not db then return end
+	if not db[CONFIG_KEY] then db[CONFIG_KEY] = {} end
+	db[CONFIG_KEY][key] = value
 end
 
 local function ApplyConfig()
@@ -230,35 +238,44 @@ function CastBar:Show(unit)
 	Create()
 	if isEditMode then return end
 
-	local objCast = UnitCastingDuration(unit)
-	local objChannel = UnitChannelDuration(unit)
-	local activeObj = objCast or objChannel
-	local isChannel = (objChannel ~= nil)
-	if not activeObj then self:Hide(); return end
+	-- In Mythic the unit / spell values can be secret; those may not be
+	-- readable by UnitCastingInfo / SetText / SetTimerDuration. pcall keeps a
+	-- secret value from erroring and just hides the bar instead.
+	local ok = pcall(function()
+		local objCast = UnitCastingDuration(unit)
+		local objChannel = UnitChannelDuration(unit)
+		local activeObj = objCast or objChannel
+		local isChannel = (objChannel ~= nil)
+		if not activeObj then self:Hide(); return end
 
-	local name, texture
-	if isChannel then name, _, texture = UnitChannelInfo(unit)
-	else name, _, texture = UnitCastingInfo(unit) end
+		local name, texture
+		if isChannel then name, _, texture = UnitChannelInfo(unit)
+		else name, _, texture = UnitCastingInfo(unit) end
 
-	bar.Icon:SetTexture(texture)
-	bar.Icon:Show()
-	bar.spellName:SetText(name or "")
+		bar.Icon:SetTexture(texture)
+		bar.Icon:Show()
+		bar.spellName:SetText(name or "")
 
-	local target = UnitSpellTargetName(unit)
-	if target then
-		bar.targetName:SetText(target)
-		local tc = UnitSpellTargetClass(unit)
-		local color = C_ClassColor.GetClassColor(tc)
-		if color then bar.targetName:SetTextColor(color.r, color.g, color.b, 1)
-		else bar.targetName:SetTextColor(1, 1, 1, 1) end
-		bar.targetName:Show()
-	else
-		bar.targetName:Hide()
+		local target = UnitSpellTargetName(unit)
+		if target then
+			bar.targetName:SetText(target)
+			local tc = UnitSpellTargetClass(unit)
+			local color = C_ClassColor.GetClassColor(tc)
+			if color then bar.targetName:SetTextColor(color.r, color.g, color.b, 1)
+			else bar.targetName:SetTextColor(1, 1, 1, 1) end
+			bar.targetName:Show()
+		else
+			bar.targetName:Hide()
+		end
+
+		bar.statusBar:SetTimerDuration(activeObj, Enum.StatusBarInterpolation.None, isChannel and 1 or 0)
+		bar.Cooldown:SetCooldownFromDurationObject(activeObj, true)
+		bar:Show()
+	end)
+	if not ok then
+		addon:Dbg("CastBar", "Show failed (secret value?)")
+		self:Hide()
 	end
-
-	bar.statusBar:SetTimerDuration(activeObj, Enum.StatusBarInterpolation.None, isChannel and 1 or 0)
-	bar.Cooldown:SetCooldownFromDurationObject(activeObj, true)
-	bar:Show()
 end
 
 function CastBar:Hide()

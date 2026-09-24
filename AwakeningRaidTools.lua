@@ -124,3 +124,81 @@ SlashCmdList["ARTPTTEST"] = function(msg)
         print("ART: PhaseTracker not loaded")
     end
 end
+
+-- ============================================================================
+-- /artsim — one-shot simulation of restricted-environment states.
+-- Uses Blizzard's session-only "*Forced" cvars so secret/restriction branches
+-- can be exercised in town without entering a dungeon. Restart clears them.
+-- ============================================================================
+
+local ARTSIM_CVARS = {
+    "addonChatRestrictionsForced",
+    "addonMapRestrictionsForced",
+    "addonEncounterRestrictionsForced",
+    "addonCombatRestrictionsForced",
+    "addonChallengeModeRestrictionsForced",
+    "addonPvPMatchRestrictionsForced",
+}
+
+-- Restriction enum order (Enum.AddOnRestrictionType): Combat, Encounter,
+-- ChallengeMode, PvPMatch, Map, Chat.
+local ARTSIM_PRESETS = {
+    mythic = {
+        "addonEncounterRestrictionsForced",
+        "addonMapRestrictionsForced",
+        "addonChatRestrictionsForced",
+    },
+    ["m+"] = {
+        "addonChallengeModeRestrictionsForced",
+        "addonMapRestrictionsForced",
+        "addonChatRestrictionsForced",
+    },
+    ["pvp"] = {
+        "addonPvPMatchRestrictionsForced",
+        "addonMapRestrictionsForced",
+        "addonChatRestrictionsForced",
+    },
+}
+
+local function ArtSimApply(names)
+    for _, c in ipairs(ARTSIM_CVARS) do
+        SetCVar(c, "0")
+    end
+    if names then
+        for _, c in ipairs(names) do
+            SetCVar(c, "1")
+        end
+    end
+end
+
+local function ArtSimReport()
+    if not (C_RestrictedActions and C_RestrictedActions.IsAddOnRestrictionActive) then
+        print("ART sim: C_RestrictedActions unavailable on this client")
+        return
+    end
+    local labels = { "Combat", "Encounter", "ChallengeMode", "PvPMatch", "Map", "Chat" }
+    local parts = {}
+    for i, label in ipairs(labels) do
+        local ok, active = pcall(C_RestrictedActions.IsAddOnRestrictionActive, i - 1)
+        parts[#parts + 1] = ("%s=%s"):format(label, ok and tostring(active == true) or "?")
+    end
+    print("ART sim: " .. table.concat(parts, "  "))
+end
+
+SLASH_ARTSIM1 = "/artsim"
+SlashCmdList["ARTSIM"] = function(msg)
+    local key = (msg or ""):lower():gsub("%s+", "")
+    if key == "" or key == "status" then
+        print("ART: /artsim mythic | m+ | pvp | off")
+    elseif key == "off" or key == "0" then
+        ArtSimApply(nil)
+        print("ART sim: off (all forced cvars cleared)")
+    elseif ARTSIM_PRESETS[key] then
+        ArtSimApply(ARTSIM_PRESETS[key])
+        print(("ART sim: %s restrictions forced ON"):format(key))
+    else
+        print(("ART: unknown preset '%s' — use mythic | m+ | pvp | off"):format(key))
+    end
+    ArtSimReport()
+    print("ART sim: if nothing changed, /reload (cvars are session-only, cleared on restart)")
+end

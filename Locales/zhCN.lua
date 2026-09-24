@@ -54,6 +54,18 @@ addon.locales.zhCN = addon.locales.zhCN or {
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY = "启用打断显示",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY_DESC = "在战斗中于敌方姓名板上显示打断标记。",
     OPTIONS_SSZORAK_VIRULENCE_DIRECTION = "剧毒方向语音",
+    OPTIONS_COILEDALTAR_INTERRUPT_COUNTER = "打断追踪(焦点)",
+    OPTIONS_COILEDALTAR_INTERRUPT_COUNTER_DESC =
+    "Lura 式打断追踪:boss3 与 boss4 都会读条,但只显示你设为焦点的那个对象的计数。",
+    OPTIONS_COILEDALTAR_INTERRUPT_NAMEPLATE = "显示在姓名板上",
+    OPTIONS_COILEDALTAR_INTERRUPT_NAMEPLATE_DESC =
+    "在焦点 boss 的姓名板上方显示计数。",
+    OPTIONS_COILEDALTAR_INTERRUPT_FOCUSFRAME = "显示在焦点施法框架旁",
+    OPTIONS_COILEDALTAR_INTERRUPT_FOCUSFRAME_DESC =
+    "在焦点施法条旁显示计数。",
+    OPTIONS_COILEDALTAR_INTERRUPT_CASTBAR = "显示 Art 焦点施法条",
+    OPTIONS_COILEDALTAR_INTERRUPT_CASTBAR_DESC =
+    "显示焦点目标的 Art(Lura)施法条及计数,位置在编辑模式中调整。",
     OPTIONS_SSZORAK_WINDCALL_RECEIVE = "报风口喊话条(接收)",
     OPTIONS_SSZORAK_WINDCALL_RECEIVE_DESC =
     "显示收到的报风口喊话(/raid wN，N=1-6)：每条显示对侧标记(放点名位置)。史诗难度下聊天文本为 secret 时仍可用。",

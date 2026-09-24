@@ -192,9 +192,33 @@ local function UnregisterAll()
     wipe(auraSoundIDs)
 end
 
+-- True when AddAuraSound must NOT be called right now. The API carries
+-- HasRestrictions, so any active addon restriction blocks it (not just combat
+-- lockdown): C_Secrets.ShouldAurasBeSecret() is the authoritative signal (DBM
+-- gates on the same thing).
+local function AuraSoundBlocked()
+    if InCombatLockdown() then return true end
+    if C_Secrets and C_Secrets.ShouldAurasBeSecret then
+        -- Keep the truth test inside pcall too: a restricted client may return
+        -- a secret value from this API.
+        local ok, blocked = pcall(function()
+            return C_Secrets.ShouldAurasBeSecret() and true or false
+        end)
+        if ok and blocked then return true end
+    end
+    return false
+end
+
 local function RegisterAll()
     if not AuraSoundApiAvailable() then
         addon:Dbg(Boss.name, "aura sound API unavailable, skipping")
+        return false
+    end
+    if AuraSoundBlocked() then
+        -- AddAuraSound has HasRestrictions: calling it while any addon
+        -- restriction is active (combat / encounter / M+ / restricted map)
+        -- triggers ADDON_ACTION_BLOCKED. Defer instead of calling.
+        addon:Dbg(Boss.name, "aura sound register blocked by restrictions")
         return false
     end
     local inCombat = InCombatLockdown()
@@ -225,6 +249,7 @@ end
 -- unregister at encounter end. If we are still locked down at init (a /reload
 -- during combat), defer once until the player leaves combat.
 local regenFrame, regenScheduled = nil, false
+local regenEventFrame
 
 -- Defer registration until the player leaves combat. We cannot register
 -- events during lockdown (ADDON_ACTION_FORBIDDEN), so poll with OnUpdate —
@@ -233,6 +258,9 @@ local function CancelRegenRetry()
     if regenFrame then
         regenFrame:SetScript("OnUpdate", nil)
         regenFrame:Hide()
+    end
+    if regenEventFrame then
+        regenEventFrame:UnregisterAllEvents()
     end
     regenScheduled = false
 end
@@ -245,7 +273,7 @@ local function ScheduleRegenRetry()
         regenFrame:Hide()
     end
     regenFrame:SetScript("OnUpdate", function(self, elapsed)
-        if InCombatLockdown() then return end
+        if AuraSoundBlocked() then return end
         self:SetScript("OnUpdate", nil)
         self:Hide()
         regenScheduled = false
@@ -254,6 +282,20 @@ local function ScheduleRegenRetry()
         end
     end)
     regenFrame:Show()
+    -- Also retry as soon as restrictions are lifted (leaving the instance /
+    -- encounter), which is more precise than polling alone.
+    if not regenEventFrame then
+        regenEventFrame = CreateFrame("Frame")
+        -- RegisterSafeEvents defers the actual RegisterEvent while locked
+        -- down (plain RegisterEvent there raises ADDON_ACTION_FORBIDDEN).
+        addon:RegisterSafeEvents(regenEventFrame, { "PLAYER_ENTERING_WORLD" },
+            function()
+                if AuraSoundBlocked() then return end
+                if IsFeatureEnabled("virulenceDirectionSound") then
+                    RegisterAll()
+                end
+            end)
+    end
 end
 
 
@@ -371,9 +413,10 @@ function Boss:OnInitialize()
     StartWindListening()
 
     if not IsFeatureEnabled("virulenceDirectionSound") then return end
-    if InCombatLockdown() then
-        -- /reload happened mid-combat; register once combat ends.
-        addon:Dbg(Boss.name, "in combat at init; deferring aura sound register")
+    if AuraSoundBlocked() then
+        -- /reload inside an instance (restricted map) or during combat:
+        -- register once the restrictions are lifted.
+        addon:Dbg(Boss.name, "aura sound register blocked at init; deferring")
         ScheduleRegenRetry()
         return
     end
@@ -422,7 +465,7 @@ function Boss:OnMythicEncounterStart(encounterID, encounterName, difficultyID, g
     -- pre-registration was consumed). In combat lockdown this is rejected,
     -- which is fine: OnInitialize / regen retry covered the normal paths.
     if IsFeatureEnabled("virulenceDirectionSound") then
-        if InCombatLockdown() and next(auraSoundIDs) == nil then
+        if AuraSoundBlocked() and next(auraSoundIDs) == nil then
             ScheduleRegenRetry()
         else
             RegisterAll()

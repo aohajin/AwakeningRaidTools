@@ -1,19 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!--
-    Key bindings for the Sszorak wind-outlet call system.
-    Each ART_WIND_N is fired by the secure button ART_WindCallBtnN (see
-    Common/WindCall.lua). Keys are assigned by the player in the Key Bindings
-    UI; the secure button turns the key press into a /raid wN macro.
-
-    `category` names the binding group directly (no BINDING_HEADER global is
-    set from Lua — setting one as well as the header caused the client to warn
-    that the header was "loaded more than once").
+    WoW auto-loads <Addon>/Bindings.xml; the file must exist or the client
+    warns "Couldn't open .../Bindings.xml". The wind-call buttons are secure
+    macro buttons and need no key bindings, so this file is intentionally
+    empty.
 -->
 <Bindings>
-    <Binding name="ART_WIND_1" category="Awakening Raid Tools" />
-    <Binding name="ART_WIND_2" category="Awakening Raid Tools" />
-    <Binding name="ART_WIND_3" category="Awakening Raid Tools" />
-    <Binding name="ART_WIND_4" category="Awakening Raid Tools" />
-    <Binding name="ART_WIND_5" category="Awakening Raid Tools" />
-    <Binding name="ART_WIND_6" category="Awakening Raid Tools" />
 </Bindings>

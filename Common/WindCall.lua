@@ -32,12 +32,14 @@ local WindCall = {
 -- Saved-variable key kept from the old FacingCompass module.
 local DB_KEY = "FacingCompass"
 
--- Wind-call icons (DFT WindOctagon style): w<N>.tga = outlet marker,
--- w<N>_o.tga = the OPPOSITE marker (soak position). The chat message ("wN")
--- is fed straight into a texture path via SetFormattedText — no parsing, so
--- it also works while the message is a secret value.
+-- Wind-call icons: w<N>.tga = outlet marker, w<N>_o.tga = the OPPOSITE marker
+-- (soak position). The chat message ("wN") is fed straight into a texture path
+-- via SetFormattedText — no parsing, so it works while the message is secret.
+-- Art is the DFT WindOctagon raid-icon set, copied (not renamed in place) into
+-- a fresh folder with the mapping baked in: w1 star->triangle, w2 circle->moon,
+-- w3 diamond->square and vice versa.
 local WIND_TEX = "Interface\\AddOns\\" .. (addon.name or "AwakeningRaidTools")
-    .. "\\media\\WindOctagon\\"
+    .. "\\media\\WindCallTga\\"
 
 -- Call strip: slot count/width. recentCalls holds the raw message values of
 -- the latest calls (newest last, at most WIND_SLOTS). Storing secret values in
@@ -53,10 +55,9 @@ local windTableRow2 = {} -- [slot] call-icon FontString (renders the message)
 
 -- Send panel (leader buttons).
 local senderPanel
-local senderSecure -- secure button host (parented to UIParent, like DFT)
+local senderSecure -- secure button host (parented to UIParent)
 local senderButtons = {} -- [idx] SecureActionButtonTemplate
 local senderDeferFrame -- defers panel creation when /reload lands in combat
-local senderRefreshFrame -- keeps the button macro channel in sync (out of combat)
 local SENDER_COUNT = 6
 local SENDER_BTN_W = 40
 
@@ -130,41 +131,15 @@ local function CreateWindTable()
 end
 
 -- ============================================================================
--- Send panel (secure buttons; DFT WindOctagon style)
+-- Send panel (secure macro buttons)
+-- A plain Button + SendChatMessage is BLOCKED (SendChatMessage is protected);
+-- a SecureActionButtonTemplate "macro" is the only allowed path. RAID/PARTY
+-- need no hardware event; SAY outdoors does, so solo testing may silently fail.
 -- ============================================================================
 
--- Macro body: always /raid (DFT WindOctagon does the same). RAID needs no
--- hardware event and is not subject to the outdoor SAY/YELL restriction, and
--- RestrictedForMacroChatMessages applies to macro chat generally — the secure
--- button supplies the hardware-event path.
+-- Always /raid: the send panel is for the raid leader.
 local function MacroBody(i)
     return "/raid w" .. i
-end
-
--- Bind keys to the buttons (DFT approach): the key is a hardware event, which
--- is the reliable way to fire a secure macro. Keys are user-assigned in the
--- Key Bindings UI (ART_WIND_N, from Bindings.xml).
-local function RefreshBindings()
-    if InCombatLockdown() then return end
-    if not (senderSecure and ClearOverrideBindings and SetOverrideBindingClick
-        and GetBindingKey) then
-        return
-    end
-    ClearOverrideBindings(senderSecure)
-    for i = 1, SENDER_COUNT do
-        local btnName = "ART_WindCallBtn" .. i
-        local k1, k2 = GetBindingKey("ART_WIND_" .. i)
-        if k1 then SetOverrideBindingClick(senderSecure, false, k1, btnName) end
-        if k2 then SetOverrideBindingClick(senderSecure, false, k2, btnName) end
-    end
-end
-
-local function RefreshMacrotexts()
-    if InCombatLockdown() then return end -- secure attributes are locked
-    for i, btn in pairs(senderButtons) do
-        btn:SetAttribute("macrotext", MacroBody(i))
-    end
-    RefreshBindings()
 end
 
 local function CreateSenderPanel()
@@ -200,9 +175,8 @@ local function CreateSenderPanel()
     else
         senderPanel:SetPoint("CENTER", UIParent, "CENTER", 0, -120)
     end
-    -- Secure host: parented to UIParent (not the panel) so the buttons live
-    -- in a clean secure environment; its position is anchored to the panel so
-    -- it follows Edit Mode moves.
+    -- Secure host: parented to UIParent (not the panel) so the buttons live in
+    -- a clean secure environment; anchored to the panel so it follows Edit Mode.
     senderSecure = CreateFrame("Frame", "ART_WindCallSecure", UIParent)
     senderSecure:SetSize(SENDER_COUNT * SENDER_BTN_W, 44)
     senderSecure:SetPoint("CENTER", senderPanel, "CENTER", 0, 0)
@@ -215,8 +189,13 @@ local function CreateSenderPanel()
         btn:SetPoint("LEFT", senderSecure, "LEFT", (i - 1) * SENDER_BTN_W + 2, 0)
         btn:SetAttribute("type", "macro")
         btn:SetAttribute("macrotext", MacroBody(i))
-        -- Both click types, like DFT (secure action buttons are picky).
         btn:RegisterForClicks("AnyUp", "AnyDown")
+        -- NOTE: do NOT SetScript("OnClick", ...) here — SecureActionButtonTemplate
+        -- runs its action through the template's OnClick handler, so overriding
+        -- it silently disables the macro. Use OnMouseDown for diagnostics.
+        btn:SetScript("OnMouseDown", function()
+            addon:Dbg("WindCall", ("clicked w%d -> macro '%s'"):format(i, MacroBody(i)))
+        end)
         local icon = btn:CreateTexture(nil, "ARTWORK")
         icon:SetAllPoints(btn)
         icon:SetTexture(MARKER_TEX .. i)
@@ -226,16 +205,7 @@ local function CreateSenderPanel()
         senderButtons[i] = btn
     end
     senderPanel:Hide()
-    senderSecure:Hide()
 
-    -- Keep the macro channel in sync with the group state (secure attributes
-    -- can only be changed out of combat).
-    if not senderRefreshFrame then
-        senderRefreshFrame = CreateFrame("Frame")
-        senderRefreshFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-        senderRefreshFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
-        senderRefreshFrame:SetScript("OnEvent", RefreshMacrotexts)
-    end
     return senderPanel
 end
 
@@ -251,14 +221,13 @@ local function RenderCalls()
         if icon then
             local text = recentCalls[slot]
             if text ~= nil then
-                -- WIND_TEX is a Lua constant; `text` (possibly secret) only
-                -- reaches the C formatter. pcall guards a client that refuses
-                -- secret values in format strings.
-                local ok = pcall(icon.SetFormattedText, icon,
-                    "|T" .. WIND_TEX .. "%s_o.tga:40:40|t", text)
-                if not ok then
-                    addon:Dbg("WindCall", "SetFormattedText failed (secret value?)")
-                end
+                -- Aligned with DFT WindOctagon: no file extension in the |T
+                -- path (the client resolves .tga/.blp) and the whole call is
+                -- pcall-wrapped like DFT does.
+                local ok = pcall(function()
+                    icon:SetFormattedText("|T" .. WIND_TEX .. "%s_o.tga:40:40|t", text)
+                end)
+                addon:Dbg("WindCall", ("slot %d render ok=%s"):format(slot, tostring(ok)))
                 icon:Show()
             else
                 icon:Hide()
@@ -272,6 +241,10 @@ end
 -- "w6"), which is a SECRET value in Mythic — we store it but never read it.
 function WindCall:AddWindCall(text)
     if not windTable then return end
+    addon:Dbg("WindCall", ("AddWindCall: type=%s secret=%s shown=%s"):format(
+        type(text),
+        tostring(issecretvalue and issecretvalue(text)),
+        tostring(windTable:IsShown())))
     -- Strip texture/colour escapes so a raid member cannot inject |T/|c
     -- markup. Only possible when the message is NOT secret.
     if type(text) == "string" and not (issecretvalue and issecretvalue(text)) then
@@ -416,10 +389,6 @@ function WindCall:OnInitialize()
     -- Pre-create + register both frames so they exist BEFORE Edit Mode opens.
     CreateWindTable()
     CreateSenderPanel()
-    -- Bind any keys the player assigned (ART_WIND_N from Bindings.xml) to the
-    -- secure buttons. No BINDING_HEADER global: Bindings.xml uses `category`,
-    -- and setting a header from Lua made the client warn about a double load.
-    RefreshBindings()
     if not LEM then return end
     LEM:RegisterCallback("enter", ShowForEditMode)
     LEM:RegisterCallback("exit", RestoreAfterEditMode)

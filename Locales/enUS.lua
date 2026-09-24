@@ -55,6 +55,18 @@ addon.locales.enUS = addon.locales.enUS or {
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY = "Enable interrupt display",
     OPTIONS_FALLENKING_INTERRUPT_DISPLAY_DESC = "Show interrupt markers on enemy nameplates during the encounter.",
     OPTIONS_SSZORAK_VIRULENCE_DIRECTION = "Virulence direction voice",
+    OPTIONS_COILEDALTAR_INTERRUPT_COUNTER = "Interrupt counter (focus)",
+    OPTIONS_COILEDALTAR_INTERRUPT_COUNTER_DESC =
+    "Lura-style interrupt tracker: boss3/boss4 both cast, but the count is shown only for the one you have focused.",
+    OPTIONS_COILEDALTAR_INTERRUPT_NAMEPLATE = "Show on nameplate",
+    OPTIONS_COILEDALTAR_INTERRUPT_NAMEPLATE_DESC =
+    "Show the counter above the focused boss's nameplate.",
+    OPTIONS_COILEDALTAR_INTERRUPT_FOCUSFRAME = "Show on focus cast frame",
+    OPTIONS_COILEDALTAR_INTERRUPT_FOCUSFRAME_DESC =
+    "Show the counter next to the focus spell bar.",
+    OPTIONS_COILEDALTAR_INTERRUPT_CASTBAR = "Show Art focus cast bar",
+    OPTIONS_COILEDALTAR_INTERRUPT_CASTBAR_DESC =
+    "Show the Art (Lura) cast bar for the focus target, with the counter; position it in Edit Mode.",
     OPTIONS_SSZORAK_WINDCALL_RECEIVE = "Wind-call strip (receive)",
     OPTIONS_SSZORAK_WINDCALL_RECEIVE_DESC =
     "Shows incoming wind-outlet calls (/raid wN, N=1-6) as an icon strip; each entry shows the OPPOSITE marker (soak position). Works even while chat text is secret in Mythic.",
