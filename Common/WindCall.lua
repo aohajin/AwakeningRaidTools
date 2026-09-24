@@ -159,7 +159,10 @@ local function CreateSenderPanel()
                         senderPanel.editModeName = "Awakening Raid Tools: Wind call buttons"
                         RegisterEditModeMovable(senderPanel, "senderPos", 0, -120)
                     end
-                    if WindCall.isEnabled then senderPanel:Show() end
+                    if WindCall.isEnabled then
+                        senderPanel:Show()
+                        if senderSecure then senderSecure:Show() end
+                    end
                 end
             end)
         end
@@ -205,6 +208,9 @@ local function CreateSenderPanel()
         senderButtons[i] = btn
     end
     senderPanel:Hide()
+    -- The secure host (and therefore the buttons) must start hidden too; it is
+    -- shown only via ApplyVisibility when sending is enabled.
+    if senderSecure then senderSecure:Hide() end
 
     return senderPanel
 end
